@@ -15,7 +15,7 @@ import java.util.List;
 
 
 public class Contact implements Serializable {
-    enum State { ONLINE, OFFLINE, PENDING };
+    enum State { ONLINE, OFFLINE, UNKNOWN };
 
     private String name;
     private byte[] pubkey;
@@ -23,7 +23,8 @@ public class Contact implements Serializable {
     private List<String> addresses;
 
     // contact state
-    private State state = State.PENDING;
+    private State state = State.UNKNOWN;
+    private long state_last_updated = System.currentTimeMillis();
 
     // last working address (use this address next connection and for unknown contact initialization)
     private InetSocketAddress last_working_address = null;
@@ -43,10 +44,14 @@ public class Contact implements Serializable {
     }
 
     public State getState() {
+        if (state_last_updated + (5*1000*60) > System.currentTimeMillis()) {
+            state = Contact.State.UNKNOWN;
+        }
         return state;
     }
 
     public void setState(State state) {
+        this.state_last_updated = System.currentTimeMillis();
         this.state = state;
     }
 

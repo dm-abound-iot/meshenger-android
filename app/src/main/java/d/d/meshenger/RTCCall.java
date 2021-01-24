@@ -79,6 +79,7 @@ public class RTCCall implements DataChannel.Observer {
 
     // called for incoming calls
     public RTCCall(Context context, MainService.MainBinder binder, Contact contact, Socket commSocket, String offer) {
+        log( "RTCCall contructor1 called");
         this.context = context;
         this.contact = contact;
         this.commSocket = commSocket;
@@ -99,6 +100,7 @@ public class RTCCall implements DataChannel.Observer {
 
     // called for outgoing calls
     private RTCCall(Context context, MainService.MainBinder binder, Contact contact, OnStateChangeListener listener) {
+        log( "RTCCall contructor2 called");
         this.context = context;
         this.contact = contact;
         this.commSocket = null;
@@ -106,8 +108,6 @@ public class RTCCall implements DataChannel.Observer {
         this.binder = binder;
         this.ownPublicKey = binder.getSettings().getPublicKey();
         this.ownSecretKey = binder.getSettings().getSecretKey();
-
-        log("RTCCall created");
 
         // usually empty
         this.iceServers = new ArrayList<>();
@@ -124,9 +124,11 @@ public class RTCCall implements DataChannel.Observer {
         }
 
         new Thread(() -> {
+            log("create RTCCall Thread");
             connection = factory.createPeerConnection(Collections.emptyList(), new DefaultObserver() {
                 @Override
                 public void onIceGatheringChange(PeerConnection.IceGatheringState iceGatheringState) {
+                    log("onIceGatheringChange");
                     super.onIceGatheringChange(iceGatheringState);
                     byte[] otherPublicKey = new byte[Sodium.crypto_sign_publickeybytes()];
 
@@ -146,7 +148,7 @@ public class RTCCall implements DataChannel.Observer {
 
                             // remember latest working address
                             contact.setLastWorkingAddress(
-                                    new InetSocketAddress(remote_address.getAddress(), MainService.serverPort)
+                                new InetSocketAddress(remote_address.getAddress(), MainService.serverPort)
                             );
 
                             log("connect..");
@@ -443,7 +445,14 @@ public class RTCCall implements DataChannel.Observer {
 
     private void initRTC(Context c) {
         PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder(c).createInitializationOptions());
-        factory = PeerConnectionFactory.builder().createPeerConnectionFactory();
+        //factory = PeerConnectionFactory.builder().createPeerConnectionFactory();
+
+        PeerConnectionFactory.Builder builder = PeerConnectionFactory.builder();
+        PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+        options.disableNetworkMonitor = true;
+        builder.setOptions(options);
+
+        factory = builder.createPeerConnectionFactory();
 
         constraints = new MediaConstraints();
         constraints.optional.add(new MediaConstraints.KeyValuePair("offerToReceiveAudio", "true"));

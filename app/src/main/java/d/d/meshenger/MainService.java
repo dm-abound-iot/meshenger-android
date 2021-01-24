@@ -116,6 +116,7 @@ public class MainService extends Service implements Runnable {
                         continue;
                     }
 
+                    // TODO: request security tocken to prevent replay attack?
                     byte[] encrypted = Crypto.encryptMessage(message, contact.getPublicKey(), ownPublicKey, ownSecretKey);
                     if (encrypted == null) {
                         continue;
@@ -213,7 +214,7 @@ public class MainService extends Service implements Runnable {
         return START_NOT_STICKY;
     }
 
-    private void handleClient(MainBinder binder, Socket client) {
+    private void handleClient(MainBinder binder, Socket socket) {
         // just a precaution
         if (this.db == null) {
             return;
@@ -224,11 +225,11 @@ public class MainService extends Service implements Runnable {
         byte[] ownPublicKey = this.db.settings.getPublicKey();
 
         try {
-            PacketWriter pw = new PacketWriter(client);
-            PacketReader pr = new PacketReader(client);
+            PacketWriter pw = new PacketWriter(socket);
+            PacketReader pr = new PacketReader(socket);
             Contact contact = null;
 
-            InetSocketAddress remote_address = (InetSocketAddress) client.getRemoteSocketAddress();
+            InetSocketAddress remote_address = (InetSocketAddress) socket.getRemoteSocketAddress();
             log("incoming connection from " + remote_address);
 
             while (true) {
@@ -244,6 +245,7 @@ public class MainService extends Service implements Runnable {
                 }
 
                 if (contact == null) {
+                    // search for contact identity
                     for (Contact c : this.db.contacts) {
                         if (Arrays.equals(c.getPublicKey(), clientPublicKey)) {
                             contact = c;
@@ -291,7 +293,7 @@ public class MainService extends Service implements Runnable {
                         // someone calls us
                         log("got call...");
                         String offer = obj.getString("offer");
-                        this.currentCall = new RTCCall(this, binder, contact, client, offer);
+                        this.currentCall = new RTCCall(this, binder, contact, socket, offer);
 
                         // respond that we accept the call
 
@@ -300,9 +302,13 @@ public class MainService extends Service implements Runnable {
 
                         Intent intent = new Intent(this, CallActivity.class);
                         intent.setAction("ACTION_INCOMING_CALL");
-                        intent.putExtra("EXTRA_CONTACT", contact);
+                        intent.putExtra("EXTRA_SDP_OFFER", offer);
+                        intent.putExtra("EXTRA_CONTACT_NAME", contact.getName());
+                        intent.putExtra("EXTRA_CONTACT_ADDRESS", remote_address.getAddress());
+                        intent.putExtra("EXTRA_CONTACT_PORT", MainService.serverPort);
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(intent);
+                        // we still use the socket here to send 
                         return;
                     }
                     case "ping": {
@@ -328,7 +334,7 @@ public class MainService extends Service implements Runnable {
 
         } catch (Exception e) {
             e.printStackTrace();
-            log("client disconnected (exception)");
+            log("socket disconnected (exception)");
             if (this.currentCall != null) {
                 this.currentCall.decline();
             }
@@ -338,6 +344,7 @@ public class MainService extends Service implements Runnable {
         Arrays.fill(clientPublicKey, (byte) 0);
     }
 
+    // runs in a thread
     @Override
     public void run() {
         try {
@@ -357,11 +364,12 @@ public class MainService extends Service implements Runnable {
                 try {
                     Socket socket = server.accept();
                     new Thread(() -> handleClient(binder, socket)).start();
+                    Thread.sleep(50); // mitigate DDOS attack
                 } catch (IOException e) {
                     // ignore
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             new Handler(getMainLooper()).post(() -> Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show());
             stopSelf();

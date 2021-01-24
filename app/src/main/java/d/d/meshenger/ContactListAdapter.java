@@ -41,18 +41,32 @@ class ContactListAdapter extends ArrayAdapter<Contact> {
 
         ((TextView) convertView.findViewById(R.id.contact_name)).setText(contact.getName());
 
-        if (contact.getState() != Contact.State.PENDING) {
-            convertView.findViewById(R.id.contact_waiting).setVisibility(View.GONE);
-            ImageView state = convertView.findViewById(R.id.contact_state);
-            state.setVisibility(View.VISIBLE);
+        //if (contact.getState() != Contact.State.UNKNOWN) {
+            //convertView.findViewById(R.id.contact_waiting).setVisibility(View.GONE); // no animation
+            ImageView stateView = convertView.findViewById(R.id.contact_state);
+            stateView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    contact.setState(Contact.State.UNKNOWN);
+                    // TODO: send ping
+                }
+            });
+
+            //stateView.setVisibility(View.VISIBLE);
             Bitmap bitmap = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap);
             Paint p = new Paint();
 
-            if (contact.getState() == Contact.State.ONLINE) {
-                p.setColor(0xFF7AE12D); // green
-            } else {
-                p.setColor(0xFFEC3E3E); // red
+            switch (contact.getState()) {
+                case ONLINE:
+                    p.setColor(0xFF7AE12D); // green
+                    break;
+                case OFFLINE:
+                    p.setColor(0xFFEC3E3E); // red
+                    break;
+                default:
+                    p.setColor(0xFFB5B5B5); // gray
+                    break;
             }
 
             canvas.drawCircle(100, 100, 100, p);
@@ -63,8 +77,8 @@ class ContactListAdapter extends ArrayAdapter<Contact> {
                 canvas.drawCircle(100, 100, 70, p);
             }
 
-            state.setImageBitmap(bitmap);
-        }
+            stateView.setImageBitmap(bitmap);
+        //}
 /*
         if (contact.recent) {
             contact.recent = false;

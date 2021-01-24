@@ -156,11 +156,13 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
                 String block = res.getString(R.string.block);
                 String unblock = res.getString(R.string.unblock);
                 String share = res.getString(R.string.share);
+                String ping = "Ping"; //res.getString(R.string.ping);
                 String qr = "QR-ify";
 
                 menu.getMenu().add(delete);
                 menu.getMenu().add(rename);
                 menu.getMenu().add(share);
+                menu.getMenu().add(ping);
                 if (contact.getBlocked()) {
                     menu.getMenu().add(unblock);
                 } else {
@@ -181,6 +183,9 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
                         setBlocked(publicKey, true);
                     } else if (title.equals(unblock)) {
                         setBlocked(publicKey, false);
+                    } else if (title.equals(ping)) {
+                    	// TODO: ping contact
+                    	log("Ping not implemented here");
                     } else if (title.equals(qr)) {
                         Intent intent = new Intent(ContactListFragment.this.mainActivity, QRShowActivity.class);
                         intent.putExtra("EXTRA_CONTACT", contact);
@@ -246,7 +251,9 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
         Contact contact = this.mainActivity.binder.getContactsCopy().get(i);
         Intent intent = new Intent(this.mainActivity, CallActivity.class);
         intent.setAction("ACTION_OUTGOING_CALL");
-        intent.putExtra("EXTRA_CONTACT", contact);
+        intent.putExtra("EXTRA_CONTACT_NAME", contact.getName());
+        intent.putExtra("EXTRA_CONTACT_ADDRESS", contact.getLastWorkingAddress());
+        intent.putExtra("EXTRA_CONTACT_PORT", MainService.serverPort);
         startActivity(intent);
     }
 
