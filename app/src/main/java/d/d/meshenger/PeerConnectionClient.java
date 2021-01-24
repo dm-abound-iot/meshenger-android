@@ -757,7 +757,7 @@ public class PeerConnectionClient {
     }
     rootEglBase.release();
     Log.d(TAG, "Closing peer connection done.");
-    events.onPeerConnectionClosed();
+    events.onPeerConnectionClosed(); // in CallActivity (but it is a dummy)
     //PeerConnectionFactory.stopInternalTracingCapture();
     //PeerConnectionFactory.shutdownInternalTracer();
   }
@@ -774,7 +774,7 @@ public class PeerConnectionClient {
     boolean success = peerConnection.getStats(new StatsObserver() {
       @Override
       public void onComplete(final StatsReport[] reports) {
-        events.onPeerConnectionStatsReady(reports);
+        events.onPeerConnectionStatsReady(reports); // in CallActivity
       }
     }, null);
     if (!success) {
@@ -1355,7 +1355,7 @@ public class PeerConnectionClient {
           if (peerConnection.getRemoteDescription() == null) {
             // We've just set our local SDP so time to send it.
             Log.d(TAG, "Local SDP set succesfully");
-            events.onLocalDescription(localDescription);
+            events.onLocalDescription(localDescription); // in CallActivity
           } else {
             // We've just set remote description, so drain remote
             // and send local ICE candidates.
@@ -1369,7 +1369,7 @@ public class PeerConnectionClient {
             // We've just set our local SDP so time to send it, drain
             // remote and send local ICE candidates.
             Log.d(TAG, "Local SDP set succesfully");
-            events.onLocalDescription(localDescription);
+            events.onLocalDescription(localDescription); // in CallActivity
             drainCandidates();
           } else {
             // We've just set remote SDP - do nothing for now -

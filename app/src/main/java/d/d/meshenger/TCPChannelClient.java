@@ -167,7 +167,6 @@ public class TCPChannelClient {
       this.executorThreadCheck.detachThread();
       this.eventListener = eventListener;
       this.rawSocketLock = new Object();
-      this.start();
     }
 
     /**

@@ -133,6 +133,7 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
 */
 
     tcpClient = new TCPChannelClient.TCPSocketClient(executor, this, this.address, this.port /*, DEFAULT_PORT*/);
+    tcpClient.start();
   }
 
   /**
@@ -247,6 +248,7 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
           null, // offerSdp
           null // iceCandidates
           );
+      // call to CallActivity
       events.onConnectedToRoom(parameters);
     }
   }
@@ -286,6 +288,7 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
             null // iceCandidates
             );
         roomState = ConnectionState.CONNECTED;
+        // call to CallActivity
         events.onConnectedToRoom(parameters);
       } else {
         reportError("Unexpected TCP message: " + msg);

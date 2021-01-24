@@ -187,10 +187,81 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   private CallFragment callFragment;
   private HudFragment hudFragment;
   //private CpuMonitor cpuMonitor;
+
   private String contact_name;
   private String contact_address;
   private int contact_port;
-  //private String target_address = "192.168.1.1"; // TODO
+
+/*
+onCreate:
+  new DirectRTCClient
+  new PeerConnectionClient
+  => startCall()
+     appRtcClient.connectToRoom(this.contact_address, this.contact_port);
+
+DierectRTCClient.connectToRoomInternal(..) {
+    this.roomState = ConnectionState.NEW;
+     tcpClient = new TCPChannelClient.TCPSocketClient(..)
+     tcpClient.start()
+       => run() //thread
+          socket = connect();
+          eventListener.onTCPConnected(isServer())
+          while (true) eventListener.onTCPMessage(message);
+          eventListener.onTCPClose();
+
+
+DirectRTCClient.onTCPConnected(boolean isServer) {
+    if (isServer) {
+      roomState = ConnectionState.CONNECTED;
+      events.onConnectedToRoom(new SignalingParameters(isServer)); // CallActivity
+    }
+}
+
+DirectRTCClient.onTCPMessage(String msg) {
+  if (type.equals("answer")) {
+        SessionDescription sdp = ...
+        events.onRemoteDescription(sdp);
+      } else if (type.equals("offer")) {
+        SessionDescription sdp = ...
+        roomState = ConnectionState.CONNECTED;
+        // call to CallActivity
+        events.onConnectedToRoom(new SignalingParameters((false, sdp));
+      }
+}
+
+CallActivity.onConnectedToRoom(params) {
+    signalingParameters = params;
+
+    if (signalingParameters.initiator) {
+      logAndToast("Creating OFFER...");
+      // Create offer. Offer SDP will be sent to answering client in
+      // PeerConnectionEvents.onLocalDescription event.
+      peerConnectionClient.createOffer();
+    } else {
+      if (params.offerSdp != null) {
+        peerConnectionClient.setRemoteDescription(params.offerSdp);
+        logAndToast("Creating ANSWER...");
+        // Create answer. Answer SDP will be sent to offering client in
+        // PeerConnectionEvents.onLocalDescription event.
+        peerConnectionClient.createAnswer();
+      }
+      if (params.iceCandidates != null) {
+        // Add remote ICE candidates from room.
+        for (IceCandidate iceCandidate : params.iceCandidates) {
+          peerConnectionClient.addRemoteIceCandidate(iceCandidate);
+        }
+      }
+}
+
+CallActivity.onRemoteDescription(final SessionDescription desc) {
+  peerConnectionClient.setRemoteDescription(desc);
+  if (!signalingParameters.initiator) {
+    // Create answer. Answer SDP will be sent to offering client in
+    // PeerConnectionEvents.onLocalDescription event.
+    peerConnectionClient.createAnswer();
+  }
+}
+*/
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -299,7 +370,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     }
 */
     //boolean loopback = intent.getBooleanExtra(EXTRA_LOOPBACK, false);
-    boolean tracing = intent.getBooleanExtra(EXTRA_TRACING, false);
+    //boolean tracing = intent.getBooleanExtra(EXTRA_TRACING, false);
 
     //int videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0);
     //int videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0);
@@ -824,7 +895,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     }
   }
 
-  // called from DirectRTCClient.onTCPConnected and DirectRTCClient.onTCPMessage (sdp from offer)
+  // called from DirectRTCClient.onTCPConnected (if we are server)
+  // and DirectRTCClient.onTCPMessage (with sdp from offer)
   @Override
   public void onConnectedToRoom(final SignalingParameters params) {
     runOnUiThread(new Runnable() {

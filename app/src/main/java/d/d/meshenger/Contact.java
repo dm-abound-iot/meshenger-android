@@ -25,8 +25,10 @@ public class Contact implements Serializable {
     // contact state
     private State state = State.UNKNOWN;
     private long state_last_updated = System.currentTimeMillis();
+    public static long STATE_TIMEOUT = 60 * 1000;
 
-    // last working address (use this address next connection and for unknown contact initialization)
+    // last working address (use this address next connection
+    // and for unknown contact initialization)
     private InetSocketAddress last_working_address = null;
 
     public Contact(String name, byte[] pubkey, List<String> addresses) {
@@ -44,7 +46,7 @@ public class Contact implements Serializable {
     }
 
     public State getState() {
-        if (state_last_updated + (5*1000*60) > System.currentTimeMillis()) {
+        if ((state_last_updated + STATE_TIMEOUT) > System.currentTimeMillis()) {
             state = Contact.State.UNKNOWN;
         }
         return state;
@@ -53,6 +55,10 @@ public class Contact implements Serializable {
     public void setState(State state) {
         this.state_last_updated = System.currentTimeMillis();
         this.state = state;
+    }
+
+    public long getStateLastUpdated() {
+        return this.state_last_updated;
     }
 
     public List<String> getAddresses() {

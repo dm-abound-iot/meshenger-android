@@ -57,9 +57,24 @@ class ContactListAdapter extends ArrayAdapter<Contact> {
             Canvas canvas = new Canvas(bitmap);
             Paint p = new Paint();
 
+
             switch (contact.getState()) {
                 case ONLINE:
                     p.setColor(0xFF7AE12D); // green
+                    float pc = (System.currentTimeMillis() - contact.getStateLastUpdated()) / Contact.STATE_TIMEOUT;
+                    if (pc >= 0.0 && pc <= 1.0) {
+                        p.setColor(0xFFFCBA03); // orange
+                        //canvas.drawCircle(100, 100, 70, p);
+                        canvas.drawArc(
+                        100, // left 
+                        100, // top
+                        100, // right 
+                        100, // bottom 
+                        0.0, // startAngle 
+                        360.0 * pc, // sweepAngle
+                        false, // useCenter
+                        p);
+                    }
                     break;
                 case OFFLINE:
                     p.setColor(0xFFEC3E3E); // red
