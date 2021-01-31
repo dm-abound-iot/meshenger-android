@@ -87,10 +87,10 @@
     <string name="contact_already_exists">Contact already exists</string>
     <string name="enter_contact_name">Enter contact name.</string>
     <string name="wrong_password">Wrong password</string>
-    <string name="contact_name_conflict">A contact with the same name exists.</string>
-    <string name="contact_key_conflict">A contact with the same key exists.</string>
+    <string name="contact_name_conflict">A contact with the same name exists:</string>
+    <string name="contact_key_conflict">A contact with the same key exists:</string>
     <string name="contact_name_empty">Contact name is empty.</string>
-    <string name="contact_name_exists">A contact with that name exists already.</string>
+    <string name="contact_name_exists">A contact with that name exists already:</string>
     <string name="contact_remove">Remove contact?</string>
     <string name="error">Error</string>
     <string name="ok">Ok</string>

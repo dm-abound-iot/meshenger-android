@@ -109,11 +109,10 @@ public class CallFragment extends Fragment {
     boolean captureSliderEnabled = false;
     Bundle args = getArguments();
     if (args != null) {
-      String contactName = args.getString(CallActivity.EXTRA_ROOMID);
+      String contactName = "contactName"; // args.getString(CallActivity.EXTRA_ROOMID);
       contactView.setText(contactName);
-      videoCallEnabled = args.getBoolean(CallActivity.EXTRA_VIDEO_CALL, true);
-      captureSliderEnabled = videoCallEnabled
-          && args.getBoolean(CallActivity.EXTRA_VIDEO_CAPTUREQUALITYSLIDER_ENABLED, false);
+      videoCallEnabled = true; // args.getBoolean(CallActivity.EXTRA_VIDEO_CALL, true);
+      captureSliderEnabled = videoCallEnabled && false; // args.getBoolean(CallActivity.EXTRA_VIDEO_CAPTUREQUALITYSLIDER_ENABLED, false);
     }
     if (!videoCallEnabled) {
       cameraSwitchButton.setVisibility(View.INVISIBLE);
@@ -127,7 +126,7 @@ public class CallFragment extends Fragment {
     }
   }
 
-  // TODO(sakal): Replace with onAttach(Context) once we only support API level 23+.
+  // Replace with onAttach(Context) once we only support API level 23+.
   @SuppressWarnings("deprecation")
   @Override
   public void onAttach(Activity activity) {

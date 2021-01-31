@@ -29,6 +29,10 @@ import java.util.regex.Pattern;
 
 class Utils {
 
+    public static boolean hasPermission(Activity activity, String permission) {
+        return (ContextCompat.checkSelfPermission(activity, permission) == PackageManager.PERMISSION_GRANTED);
+    }
+
     public static boolean hasReadPermission(Activity activity) {
         return (ContextCompat.checkSelfPermission(
                 activity, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED);
@@ -357,7 +361,7 @@ class Utils {
         try {
             List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
             for (NetworkInterface nif : all) {
-                if (nif.isLoopback()) {
+                if (nif.isLoopback() || nif.getName().equals("dummy0")) {
                     continue;
                 }
 

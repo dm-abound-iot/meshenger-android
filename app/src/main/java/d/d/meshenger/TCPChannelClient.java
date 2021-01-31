@@ -418,4 +418,36 @@ public class TCPChannelClient {
       return false;
     }
   }
+
+  // Check if we can sneak in our own scheme...
+  public static class IncomingConnection extends TCPChannelClient {
+    Socket commSocket;
+
+    public IncomingConnection(ExecutorService executor, Socket socket) {
+      super(executor, null);
+      this.commSocket = socket;
+    }
+
+    /** Connects to the peer. */
+    @Nullable
+    @Override
+    public Socket connect() {
+      Log.d(TAG, "connectSocket");
+      //Log.d(TAG, "Connecting to [" + address.getHostAddress() + "]:" + Integer.toString(port));
+
+      //try {
+        //Socket commSocket = new Socket(this.address, this.port);
+       // InetSocketAddress remote_address = (InetSocketAddress)
+        return this.commSocket;
+      //} catch (IOException e) {
+      //  reportError("Failed to connect: " + e.getMessage());
+      //  return null;
+      //}
+    }
+
+    @Override
+    public boolean isServer() {
+      return true;
+    }
+  }
 }

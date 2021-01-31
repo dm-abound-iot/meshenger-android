@@ -30,12 +30,15 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
 
 
 public class MainService extends Service implements Runnable {
-    private Database db = null;
+    public static Database db = null;
     private boolean first_start = false;
     private String database_path = "";
     private String database_password = "";
@@ -45,6 +48,8 @@ public class MainService extends Service implements Runnable {
 
     private volatile boolean run = true;
     private RTCCall currentCall = null;
+
+    public static DirectRTCClient currentCallInstance;
 
     private ArrayList<CallEvent> events = null;
 
@@ -57,11 +62,11 @@ public class MainService extends Service implements Runnable {
         super.onCreate();
 
         this.database_path = this.getFilesDir() + "/database.bin";
+        this.events = new ArrayList<>();
 
         // handle incoming connections
         new Thread(this).start();
 
-        events = new ArrayList<>();
     }
 
     private void loadDatabase() {
@@ -107,11 +112,11 @@ public class MainService extends Service implements Runnable {
         // shutdown listening socket and say goodbye
         if (this.db != null && this.server != null && this.server.isBound() && !this.server.isClosed()) {
             try {
-                byte[] ownPublicKey = this.db.settings.getPublicKey();
-                byte[] ownSecretKey = this.db.settings.getSecretKey();
+                byte[] ownPublicKey = this.db.getSettings().getPublicKey();
+                byte[] ownSecretKey = this.db.getSettings().getSecretKey();
                 String message = "{\"action\": \"status_change\", \"status\", \"offline\"}";
 
-                for (Contact contact : this.db.contacts) {
+                for (Contact contact : this.db.getContacts()) {
                     if (contact.getState() == Contact.State.OFFLINE) {
                         continue;
                     }
@@ -221,8 +226,8 @@ public class MainService extends Service implements Runnable {
         }
 
         byte[] clientPublicKey = new byte[Sodium.crypto_sign_publickeybytes()];
-        byte[] ownSecretKey = this.db.settings.getSecretKey();
-        byte[] ownPublicKey = this.db.settings.getPublicKey();
+        byte[] ownSecretKey = this.db.getSettings().getSecretKey();
+        byte[] ownPublicKey = this.db.getSettings().getPublicKey();
 
         try {
             PacketWriter pw = new PacketWriter(socket);
@@ -246,13 +251,13 @@ public class MainService extends Service implements Runnable {
 
                 if (contact == null) {
                     // search for contact identity
-                    for (Contact c : this.db.contacts) {
+                    for (Contact c : this.db.getContacts()) {
                         if (Arrays.equals(c.getPublicKey(), clientPublicKey)) {
                             contact = c;
                         }
                     }
 
-                    if (contact == null && this.db.settings.getBlockUnknown()) {
+                    if (contact == null && this.db.getSettings().getBlockUnknown()) {
                         if (this.currentCall != null) {
                             log("block unknown contact => decline");
                             this.currentCall.decline();
@@ -293,7 +298,7 @@ public class MainService extends Service implements Runnable {
                         // someone calls us
                         log("got call...");
                         String offer = obj.getString("offer");
-                        this.currentCall = new RTCCall(this, binder, contact, socket, offer);
+                        //this.currentCall = new RTCCall(this, binder, contact, socket, offer);
 
                         // respond that we accept the call
 
@@ -359,11 +364,20 @@ public class MainService extends Service implements Runnable {
 
             server = new ServerSocket(serverPort);
             MainBinder binder = (MainBinder) onBind(null);
+            //ExecutorService executor = Executors.newSingleThreadExecutor();
 
             while (this.run) {
                 try {
                     Socket socket = server.accept();
-                    new Thread(() -> handleClient(binder, socket)).start();
+                    if (this.currentCallInstance == null) {
+                        this.currentCallInstance = new DirectRTCClient(socket);
+                        Intent intent = new Intent(this, CallActivity.class);
+                        intent.setAction("ACTION_INCOMING_CALL");
+                        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        startActivity(intent);
+                        Thread.sleep(1000);
+                    }
+                    //new Thread(() -> handleClient(binder, socket)).start();
                     Thread.sleep(50); // mitigate DDOS attack
                 } catch (IOException e) {
                     // ignore
@@ -400,7 +414,7 @@ public class MainService extends Service implements Runnable {
         }
 
         Contact getContactByPublicKey(byte[] pubKey) {
-            for (Contact contact : this.service.db.contacts) {
+            for (Contact contact : this.service.db.getContacts()) {
                 if (Arrays.equals(contact.getPublicKey(), pubKey)) {
                     return contact;
                 }
@@ -409,7 +423,7 @@ public class MainService extends Service implements Runnable {
         }
 
         Contact getContactByName(String name) {
-            for (Contact contact : this.service.db.contacts) {
+            for (Contact contact : this.service.db.getContacts()) {
                 if (contact.getName().equals(name)) {
                     return contact;
                 }
@@ -479,12 +493,12 @@ public class MainService extends Service implements Runnable {
         }
 
         Settings getSettings() {
-            return this.service.db.settings;
+            return this.service.db.getSettings();
         }
 
         // return a cloned list
         List<Contact> getContactsCopy() {
-           return new ArrayList<>(this.service.db.contacts);
+           return new ArrayList<>(this.service.db.getContacts());
         }
 
         void addCallEvent(Contact contact, CallEvent.Type type) {
@@ -523,6 +537,7 @@ public class MainService extends Service implements Runnable {
 
         @Override
         public void run() {
+            /* // otherwise we trigger calls
             for (Contact contact : contacts) {
                 Socket socket = null;
                 byte[] publicKey = contact.getPublicKey();
@@ -583,6 +598,7 @@ public class MainService extends Service implements Runnable {
 
             log("send refresh_contact_list");
             LocalBroadcastManager.getInstance(this.binder.getContext()).sendBroadcast(new Intent("refresh_contact_list"));
+            */
         }
 
         private void log(String data) {

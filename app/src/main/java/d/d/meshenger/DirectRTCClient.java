@@ -12,12 +12,20 @@ package d.d.meshenger;
 
 import android.support.annotation.Nullable;
 import android.util.Log;
+
+import java.net.Socket;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,47 +37,151 @@ import org.webrtc.PeerConnection;
  * This eliminates the need for an external server. This class does not support loopback
  * connections.
  */
-public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChannelEvents {
+public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChannelClient.TCPChannelEvents*/ {
   private static final String TAG = "DirectRTCClient";
   //private static final int DEFAULT_PORT = 8888;
 
-/*
-  // Regex pattern used for checking if room id looks like an IP.
-  static final Pattern IP_PATTERN = Pattern.compile("("
-      // IPv4
-      + "((\\d+\\.){3}\\d+)|"
-      // IPv6
-      + "\\[((([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?::"
-      + "(([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?)\\]|"
-      + "\\[(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})\\]|"
-      // IPv6 without []
-      + "((([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?::(([0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4})?)|"
-      + "(([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4})|"
-      // Literals
-      + "localhost"
-      + ")"
-      // Optional port number
-      + "(:(\\d+))?");
-*/
-
   private final ExecutorService executor;
-  private final SignalingEvents events;
-  @Nullable
-  private  TCPChannelClient tcpClient;
-  private String address;
-  private int port;
-  //private RoomConnectionParameters connectionParameters;
+  private AppRTCClient.SignalingEvents events;
+  private final boolean isServer;
+  private Socket socket;
+  private Contact contact;
+  private final Object socketLock;
+  private PrintWriter out;
 
   private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
 
   // All alterations of the room state should be done from inside the looper thread.
   private ConnectionState roomState;
 
-  public DirectRTCClient(SignalingEvents events) {
-    this.events = events;
+  public DirectRTCClient(Socket socket) {
+    this.socket = socket;
+    this.contact = null;
+    this.isServer = true;
+    this.socketLock = new Object();
+    this.executor = Executors.newSingleThreadExecutor();
+    this.roomState = ConnectionState.NEW;
+  }
 
-    executor = Executors.newSingleThreadExecutor();
-    roomState = ConnectionState.NEW;
+  public DirectRTCClient(Contact contact) {
+    this.socket = null;
+    this.contact = contact;
+    this.isServer = false;
+    this.socketLock = new Object();
+    this.executor = Executors.newSingleThreadExecutor();
+    this.roomState = ConnectionState.NEW;
+
+    Log.d(TAG, "Contact: name: " + contact.getName() + ", addresses: " + contact.getAddresses());
+  }
+
+  public void setEventListener(SignalingEvents events) {
+    this.events = events;
+  }
+
+  @Override
+  public void run() {
+    Log.d(TAG, "Listening thread started...");
+
+    // Receive connection to temporary variable first, so we don't block.
+    //Socket tempSocket = connect();
+    BufferedReader in;
+
+    //Log.d(TAG, "TCP connection established.");
+
+    synchronized (socketLock) {
+      if (!isServer) {
+        Log.d(TAG, "Create outgoing socket contact.createSocket() (client)");
+        socket = contact.createSocket();
+      } else {
+        Log.d(TAG, "Incoming socket already present (server).");
+      }
+
+      //rawSocket = tempSocket;
+
+      // Connecting failed, error has already been reported, just exit.
+      if (socket == null) {
+        reportError("Connection failed.");
+        return;
+      }
+
+      try {
+        out = new PrintWriter(
+            new OutputStreamWriter(socket.getOutputStream(), Charset.forName("UTF-8")), true);
+        in = new BufferedReader(
+            new InputStreamReader(socket.getInputStream(), Charset.forName("UTF-8")));
+      } catch (IOException e) {
+        reportError("Failed to open IO on rawSocket: " + e.getMessage());
+        return;
+      }
+    }
+
+    Log.v(TAG, "Execute onTCPConnected");
+    executor.execute(new Runnable() {
+      @Override
+      public void run() {
+        Log.v(TAG, "Run onTCPConnected (isServer: " + isServer + ")");
+        /*eventListener.*/ onTCPConnected(isServer);
+      }
+    });
+
+    while (true) {
+      final String message;
+      try {
+        message = in.readLine();
+      } catch (IOException e) {
+        synchronized (socketLock) {
+          // If socket was closed, this is expected.
+          if (socket == null) {
+            break;
+          }
+        }
+
+        reportError("Failed to read from rawSocket: " + e.getMessage());
+        break;
+      }
+
+      // No data received, rawSocket probably closed.
+      if (message == null) {
+        break;
+      }
+
+      executor.execute(new Runnable() {
+        @Override
+        public void run() {
+          Log.v(TAG, "Receive: " + message);
+          /*eventListener.*/onTCPMessage(message);
+        }
+      });
+    }
+
+    Log.d(TAG, "Receiving thread exiting...");
+
+    // Close the rawSocket if it is still open.
+    disconnectSocket();
+    //disconnectFromRoom();
+  }
+
+  /** Closes the rawSocket if it is still open. Also fires the onTCPClose event. */
+  
+  private void disconnectSocket() {
+    try {
+      synchronized (socketLock) {
+        if (socket != null) {
+          socket.close();
+          socket = null;
+          out = null;
+
+          executor.execute(new Runnable() {
+            @Override
+            public void run() {
+              /*eventListener.*/onTCPClose();
+            }
+          });
+        }
+      }
+    } catch (IOException e) {
+      reportError("Failed to close rawSocket: " + e.getMessage());
+    }
   }
 
   /**
@@ -78,9 +190,9 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
    */
 
   @Override
-  public void connectToRoom(String address, int port) {
-    this.address = address;
-    this.port = port;
+  public void connectToRoom(/*String address, int port*/) {
+    //this.address = address;
+    //this.port = port;
 
     executor.execute(new Runnable() {
       @Override
@@ -132,8 +244,12 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
     }
 */
 
-    tcpClient = new TCPChannelClient.TCPSocketClient(executor, this, this.address, this.port /*, DEFAULT_PORT*/);
-    tcpClient.start();
+    //tcpClient = MainService.currentCall; // my addition
+    //tcpClient = new TCPChannelClient.TCPSocketClient(executor, this /*, this.address, this.port*/ /*, DEFAULT_PORT*/);
+    //tcpClient.start();
+
+    // start thread
+    this.start();
   }
 
   /**
@@ -144,15 +260,18 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
   private void disconnectFromRoomInternal() {
     roomState = ConnectionState.CLOSED;
 
-    if (tcpClient != null) {
-      tcpClient.disconnect();
-      tcpClient = null;
-    }
+    //if (tcpClient != null) {
+      /*tcpClient.*/disconnectSocket();
+    //  tcpClient = null;
+    //}
     executor.shutdown();
   }
 
   @Override
   public void sendOfferSdp(final SessionDescription sdp) {
+    if (!isServer) {
+      Log.e(TAG, "we send offer as client?");
+    }
     executor.execute(new Runnable() {
       @Override
       public void run() {
@@ -181,7 +300,6 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
     });
   }
 
-/*
   @Override
   public void sendLocalIceCandidate(final IceCandidate candidate) {
     executor.execute(new Runnable() {
@@ -201,10 +319,8 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
       }
     });
   }
-*/
 
   /** Send removed Ice candidates to the other participant. */
-  /*
   @Override
   public void sendLocalIceCandidateRemovals(final IceCandidate[] candidates) {
     executor.execute(new Runnable() {
@@ -225,7 +341,7 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
         sendMessage(json.toString());
       }
     });
-  }*/
+  }
 
   // -------------------------------------------------------------------
   // TCPChannelClient event handlers
@@ -233,8 +349,8 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
   /**
    * If the client is the server side, this will trigger onConnectedToRoom.
    */
-  @Override
-  public void onTCPConnected(boolean isServer) {
+  //@Override
+  private void onTCPConnected(boolean isServer) {
     if (isServer) {
       roomState = ConnectionState.CONNECTED;
 
@@ -253,13 +369,14 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
     }
   }
 
-  @Override
-  public void onTCPMessage(String msg) {
+  //@Override
+  private void onTCPMessage(String msg) {
     //String msg = ""; // dummy
+    Log.d(TAG, "onTCPMessage: " + msg);
     try {
       JSONObject json = new JSONObject(msg);
       String type = json.optString("type");
-      /*
+
       if (type.equals("candidate")) {
         events.onRemoteIceCandidate(toJavaCandidate(json));
       } else if (type.equals("remove-candidates")) {
@@ -269,13 +386,21 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
           candidates[i] = toJavaCandidate(candidateArray.getJSONObject(i));
         }
         events.onRemoteIceCandidatesRemoved(candidates);
-      } else*/ if (type.equals("answer")) {
+      } else if (type.equals("answer")) {
+          if (!isServer) {
+            Log.e(TAG, "Dang, we are the client but got an answer?");
+          }
+
         SessionDescription sdp = new SessionDescription(
             SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
         events.onRemoteDescription(sdp);
       } else if (type.equals("offer")) {
         SessionDescription sdp = new SessionDescription(
             SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+
+        if (isServer) {
+          Log.e(TAG, "Dang, we are the server but got an offer?");
+        }
 
         SignalingParameters parameters = new SignalingParameters(
             // Ice servers are not needed for direct connections.
@@ -298,13 +423,13 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
     }
   }
 
-  @Override
-  public void onTCPError(String description) {
+  //@Override
+  private void onTCPError(String description) {
     reportError("TCP connection error: " + description);
   }
 
-  @Override
-  public void onTCPClose() {
+  //@Override
+  private void onTCPClose() {
     events.onChannelClose();
   }
 
@@ -323,11 +448,28 @@ public class DirectRTCClient implements AppRTCClient, TCPChannelClient.TCPChanne
     });
   }
 
+  /**
+   * Sends a message on the socket. Should only be called on the executor thread.
+   */
+  private void send(String message) {
+    Log.v(TAG, "Send: " + message);
+
+    synchronized (socketLock) {
+      if (out == null) {
+        reportError("Sending data on closed socket.");
+        return;
+      }
+
+      out.write(message + "\n");
+      out.flush();
+    }
+  }
+
   private void sendMessage(final String message) {
     executor.execute(new Runnable() {
       @Override
       public void run() {
-        tcpClient.send(message);
+        /*tcpClient.*/send(message);
       }
     });
   }

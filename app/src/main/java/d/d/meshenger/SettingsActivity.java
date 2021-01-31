@@ -139,6 +139,51 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
             this.recreate();
         });
 
+        boolean sendAudio = this.binder.getSettings().getSendAudio();
+        CheckBox sendAudioCB = findViewById(R.id.checkBoxSendAudio);
+        sendAudioCB.setChecked(sendAudio);
+        sendAudioCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+            // save value
+            this.binder.getSettings().setSendAudio(isChecked);
+            this.binder.saveDatabase();
+        });
+
+        boolean receiveAudio = this.binder.getSettings().getReceiveAudio();
+        CheckBox receiveAudioCB = findViewById(R.id.checkBoxReceiveAudio);
+        receiveAudioCB.setChecked(receiveAudio);
+        receiveAudioCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+            // save value
+            this.binder.getSettings().setReceiveAudio(isChecked);
+            this.binder.saveDatabase();
+        });
+
+        boolean sendVideo = this.binder.getSettings().getSendVideo();
+        CheckBox sendVideoCB = findViewById(R.id.checkBoxSendVideo);
+        sendVideoCB.setChecked(sendVideo);
+        sendVideoCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+            // save value
+            this.binder.getSettings().setSendVideo(isChecked);
+            this.binder.saveDatabase();
+        });
+
+        boolean receiveVideo = this.binder.getSettings().getReceiveVideo();
+        CheckBox receiveVideoCB = findViewById(R.id.checkBoxReceiveVideo);
+        receiveVideoCB.setChecked(receiveVideo);
+        receiveVideoCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+            // save value
+            this.binder.getSettings().setReceiveVideo(isChecked);
+            this.binder.saveDatabase();
+        });
+
+        boolean autoAcceptCall = this.binder.getSettings().getAutoAcceptCall();
+        CheckBox autoAcceptCallCB = findViewById(R.id.checkBoxAutoAcceptCall);
+        autoAcceptCallCB.setChecked(autoAcceptCall);
+        autoAcceptCallCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+            // save value
+            this.binder.getSettings().setAutoAcceptCall(isChecked);
+            this.binder.saveDatabase();
+        });
+
         boolean ignoreBatteryOptimizations = getIgnoreBatteryOptimizations();
         CheckBox ignoreBatteryOptimizationsCB = findViewById(R.id.checkBoxIgnoreBatteryOptimizations);
         ignoreBatteryOptimizationsCB.setChecked(ignoreBatteryOptimizations);

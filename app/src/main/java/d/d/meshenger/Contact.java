@@ -11,7 +11,9 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 
 public class Contact implements Serializable {
@@ -78,23 +80,46 @@ public class Contact implements Serializable {
         this.addresses.add(address);
     }
 
-    public List<InetSocketAddress> getAllSocketAddresses() {
-        List<InetSocketAddress> addrs = new ArrayList<>();
+    private InetSocketAddress[] getAllSocketAddresses() {
+        Set<InetSocketAddress> list = new HashSet<>();
+
+        if (this.last_working_address != null) {
+            list.add(this.last_working_address);
+        }
+
         for (String address : this.addresses) {
             try {
                 if (Utils.isMAC(address)) {
-                    addrs.addAll(Utils.getAddressPermutations(address, MainService.serverPort));
+                    list.addAll(Utils.getAddressPermutations(address, MainService.serverPort));
                 } else {
                     // also resolves domains
-                    addrs.add(Utils.parseInetSocketAddress(address, MainService.serverPort));
+                    list.add(Utils.parseInetSocketAddress(address, MainService.serverPort));
                 }
             } catch (Exception e) {
-                log("invalid address: " + address);
+                Log.e(this, "invalid address: " + address);
                 e.printStackTrace();
             }
         }
 
-        return addrs;
+        for (InetSocketAddress address : list) {
+            Log.d(this, "got address: " + address);
+        }
+
+        InetSocketAddress[] addresses = list.toArray(new InetSocketAddress[0]);
+        //Arrays.sort(addresses);
+/*
+        Collections.sort(addrs, new Comparator<InetSocketAddress>() {
+            @Override
+            public int compare(InetSocketAddress lhs, InetSocketAddress rhs) {
+                if (lhs instanceof )
+                    getAddress​()
+                isUnresolved()
+                // -1 - less than, 1 - greater than, 0 - equal, all inversed for descending
+                return lhs.customInt > rhs.customInt ? -1 : (lhs.customInt < rhs.customInt) ? 1 : 0;
+            }
+        });
+*/
+        return addresses;
     }
 
     public byte[] getPublicKey() {
@@ -150,17 +175,18 @@ public class Contact implements Serializable {
         Socket socket = null;
         int connectionTimeout = 500;
 
+        /*
         // try last successful address first
         if (this.last_working_address != null) {
-            log("try latest address: " + this.last_working_address);
+            Log.d(this, "try latest address: " + this.last_working_address);
             socket = this.establishConnection(this.last_working_address, connectionTimeout);
             if (socket != null) {
                 return socket;
             }
-        }
+        }*/
 
         for (InetSocketAddress address : this.getAllSocketAddresses()) {
-            log("try address: '" + address.getHostName() + "', port: " + address.getPort());
+            Log.d(this, "try address: '" + address.getAddress​() + "', port: " + address.getPort());
             socket = this.establishConnection(address, connectionTimeout);
             if (socket != null) {
                 return socket;
@@ -172,7 +198,7 @@ public class Contact implements Serializable {
 
     // set good address to try first next time
     public void setLastWorkingAddress(InetSocketAddress address) {
-        log("setLatestWorkingAddress: " + address);
+        Log.d(this, "setLatestWorkingAddress: " + address);
         this.last_working_address = address;
     }
 
@@ -223,9 +249,5 @@ public class Contact implements Serializable {
         }
 
         return contact;
-    }
-
-    private void log(String s) {
-        Log.d(this, s);
     }
 }

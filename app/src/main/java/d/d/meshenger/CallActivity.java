@@ -72,6 +72,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
                                                       CallFragment.OnCallEvents {
   private static final String TAG = "CallRTCClient";
 
+/*
   public static final String EXTRA_ROOMID = "d.d.meshenger.ROOMID";
   public static final String EXTRA_URLPARAMETERS = "d.d.meshenger.URLPARAMETERS";
   public static final String EXTRA_LOOPBACK = "d.d.meshenger.LOOPBACK";
@@ -106,13 +107,13 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   public static final String EXTRA_CMDLINE = "d.d.meshenger.CMDLINE";
   public static final String EXTRA_RUNTIME = "d.d.meshenger.RUNTIME";
   //public static final String EXTRA_VIDEO_FILE_AS_CAMERA = "d.d.meshenger.VIDEO_FILE_AS_CAMERA";
-  /*public static final String EXTRA_SAVE_REMOTE_VIDEO_TO_FILE =
+  public static final String EXTRA_SAVE_REMOTE_VIDEO_TO_FILE =
       "d.d.meshenger.SAVE_REMOTE_VIDEO_TO_FILE";
   public static final String EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_WIDTH =
       "d.d.meshenger.SAVE_REMOTE_VIDEO_TO_FILE_WIDTH";
   public static final String EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT =
       "d.d.meshenger.SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT";
-      */
+      
   public static final String EXTRA_USE_VALUES_FROM_INTENT =
       "d.d.meshenger.USE_VALUES_FROM_INTENT";
   public static final String EXTRA_DATA_CHANNEL_ENABLED = "d.d.meshenger.DATA_CHANNEL_ENABLED";
@@ -123,12 +124,12 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   public static final String EXTRA_NEGOTIATED = "d.d.meshenger.NEGOTIATED";
   public static final String EXTRA_ID = "d.d.meshenger.ID";
   public static final String EXTRA_ENABLE_RTCEVENTLOG = "d.d.meshenger.ENABLE_RTCEVENTLOG";
-
+*/
   private static final int CAPTURE_PERMISSION_REQUEST_CODE = 1;
 
   // List of mandatory application permissions.
   private static final String[] MANDATORY_PERMISSIONS = {"android.permission.MODIFY_AUDIO_SETTINGS",
-      "android.permission.RECORD_AUDIO", "android.permission.INTERNET"};
+      "android.permission.RECORD_AUDIO", "android.permission.INTERNET"}; //, "android.permission.CAMERA"};
 
   // Peer connection statistics callback period in ms.
   private static final int STAT_CALLBACK_PERIOD = 1000;
@@ -188,80 +189,9 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   private HudFragment hudFragment;
   //private CpuMonitor cpuMonitor;
 
-  private String contact_name;
-  private String contact_address;
-  private int contact_port;
-
-/*
-onCreate:
-  new DirectRTCClient
-  new PeerConnectionClient
-  => startCall()
-     appRtcClient.connectToRoom(this.contact_address, this.contact_port);
-
-DierectRTCClient.connectToRoomInternal(..) {
-    this.roomState = ConnectionState.NEW;
-     tcpClient = new TCPChannelClient.TCPSocketClient(..)
-     tcpClient.start()
-       => run() //thread
-          socket = connect();
-          eventListener.onTCPConnected(isServer())
-          while (true) eventListener.onTCPMessage(message);
-          eventListener.onTCPClose();
-
-
-DirectRTCClient.onTCPConnected(boolean isServer) {
-    if (isServer) {
-      roomState = ConnectionState.CONNECTED;
-      events.onConnectedToRoom(new SignalingParameters(isServer)); // CallActivity
-    }
-}
-
-DirectRTCClient.onTCPMessage(String msg) {
-  if (type.equals("answer")) {
-        SessionDescription sdp = ...
-        events.onRemoteDescription(sdp);
-      } else if (type.equals("offer")) {
-        SessionDescription sdp = ...
-        roomState = ConnectionState.CONNECTED;
-        // call to CallActivity
-        events.onConnectedToRoom(new SignalingParameters((false, sdp));
-      }
-}
-
-CallActivity.onConnectedToRoom(params) {
-    signalingParameters = params;
-
-    if (signalingParameters.initiator) {
-      logAndToast("Creating OFFER...");
-      // Create offer. Offer SDP will be sent to answering client in
-      // PeerConnectionEvents.onLocalDescription event.
-      peerConnectionClient.createOffer();
-    } else {
-      if (params.offerSdp != null) {
-        peerConnectionClient.setRemoteDescription(params.offerSdp);
-        logAndToast("Creating ANSWER...");
-        // Create answer. Answer SDP will be sent to offering client in
-        // PeerConnectionEvents.onLocalDescription event.
-        peerConnectionClient.createAnswer();
-      }
-      if (params.iceCandidates != null) {
-        // Add remote ICE candidates from room.
-        for (IceCandidate iceCandidate : params.iceCandidates) {
-          peerConnectionClient.addRemoteIceCandidate(iceCandidate);
-        }
-      }
-}
-
-CallActivity.onRemoteDescription(final SessionDescription desc) {
-  peerConnectionClient.setRemoteDescription(desc);
-  if (!signalingParameters.initiator) {
-    // Create answer. Answer SDP will be sent to offering client in
-    // PeerConnectionEvents.onLocalDescription event.
-    peerConnectionClient.createAnswer();
-  }
-}
-*/
+  //private String contact_name;
+  //private String contact_address;
+  //private int contact_port;
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -378,33 +308,48 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
     //screencaptureEnabled = intent.getBooleanExtra(EXTRA_SCREENCAPTURE, false);
     // If capturing format is not specified for screencapture, use screen resolution.
     //if (screencaptureEnabled && videoWidth == 0 && videoHeight == 0) {
-      DisplayMetrics displayMetrics = getDisplayMetrics();
-      int videoWidth = displayMetrics.widthPixels;
-      int videoHeight = displayMetrics.heightPixels;
+      //DisplayMetrics displayMetrics = getDisplayMetrics();
+      int videoWidth = 0; //displayMetrics.widthPixels;
+      int videoHeight = 0; //displayMetrics.heightPixels;
     //}
     DataChannelParameters dataChannelParameters = null;
-    if (intent.getBooleanExtra(EXTRA_DATA_CHANNEL_ENABLED, false)) {
-      dataChannelParameters = new DataChannelParameters(intent.getBooleanExtra(EXTRA_ORDERED, true),
-          intent.getIntExtra(EXTRA_MAX_RETRANSMITS_MS, -1),
-          intent.getIntExtra(EXTRA_MAX_RETRANSMITS, -1), "false" /*intent.getStringExtra(EXTRA_PROTOCOL)*/,
-          intent.getBooleanExtra(EXTRA_NEGOTIATED, false), intent.getIntExtra(EXTRA_ID, -1));
+    if (intent.getBooleanExtra("EXTRA_DATA_CHANNEL_ENABLED", true)) {
+      dataChannelParameters = new DataChannelParameters(
+        true, // ORDERED
+        -1, // MAX_RETRANSMITS_MS
+        -1, // MAX_RETRANSMITS
+        "", //PROTOCOL
+        false, //NEGOTIATED
+        -1 // ID
+      );
+      dataChannelParameters.debug();
     }
-    peerConnectionParameters =
-        new PeerConnectionParameters(intent.getBooleanExtra(EXTRA_VIDEO_CALL, true),
-            /*tracing,*/ videoWidth, videoHeight, intent.getIntExtra(EXTRA_VIDEO_FPS, 0),
-            intent.getIntExtra(EXTRA_VIDEO_BITRATE, 0), "VP8" /*intent.getStringExtra(EXTRA_VIDEOCODEC)*/,
-            intent.getBooleanExtra(EXTRA_HWCODEC_ENABLED, true),
-            intent.getBooleanExtra(EXTRA_FLEXFEC_ENABLED, false),
-            intent.getIntExtra(EXTRA_AUDIO_BITRATE, 0), "OPUS" /*intent.getStringExtra(EXTRA_AUDIOCODEC)*/,
-            intent.getBooleanExtra(EXTRA_NOAUDIOPROCESSING_ENABLED, false),
-            //intent.getBooleanExtra(EXTRA_AECDUMP_ENABLED, false),
-            //intent.getBooleanExtra(EXTRA_SAVE_INPUT_AUDIO_TO_FILE_ENABLED, false),
-            intent.getBooleanExtra(EXTRA_OPENSLES_ENABLED, false),
-            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AEC, false),
-            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_AGC, false),
-            intent.getBooleanExtra(EXTRA_DISABLE_BUILT_IN_NS, false),
-            intent.getBooleanExtra(EXTRA_DISABLE_WEBRTC_AGC_AND_HPF, false),
-            /*intent.getBooleanExtra(EXTRA_ENABLE_RTCEVENTLOG, false),*/ dataChannelParameters);
+    Settings settings = MainService.db.getSettings();
+    peerConnectionParameters = new PeerConnectionParameters(
+      settings.getReceiveVideo(),
+      settings.getSendVideo(),
+      settings.getReceiveAudio(),
+      settings.getSendAudio(),
+
+      true, // VIDEO_CALL
+      videoWidth,
+      videoHeight,
+      0, // VIDEO_FPS
+      0, // VIDEO_BITRATE
+      "VP8", // VIDEOCODEC
+      true, // HWCODEC_ENABLED
+      false, // FLEXFEC_ENABLED
+      0, // AUDIO_BITRATE
+      "OPUS", // AUDIOCODEC
+      false, // NOAUDIOPROCESSING_ENABLED
+      false, // OPENSLES_ENABLED
+      false, // DISABLE_BUILT_IN_AEC
+      false, // DISABLE_BUILT_IN_AGC
+      false, // DISABLE_BUILT_IN_NS
+      false, // DISABLE_WEBRTC_AGC_AND_HPF
+      dataChannelParameters
+    );
+    peerConnectionParameters.debug();
     //commandLineRun = intent.getBooleanExtra(EXTRA_CMDLINE, false);
     //int runTimeMs = intent.getIntExtra(EXTRA_RUNTIME, 0);
 
@@ -415,38 +360,30 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
     //if (loopback || !DirectRTCClient.IP_PATTERN.matcher(roomId).matches()) {
     //  appRtcClient = new WebSocketRTCClient(this);
     //} else {
-      Log.i(TAG, "Using DirectRTCClient because room name looks like an IP.");
+      //Log.i(TAG, "Using DirectRTCClient because room name looks like an IP.");
 
-      appRtcClient = new DirectRTCClient(this);
+      //appRtcClient = new DirectRTCClient(this);
     //}
     // Create connection parameters.
     //String urlParameters = intent.getStringExtra(EXTRA_URLPARAMETERS);
     //roomConnectionParameters =
     //    new RoomConnectionParameters(roomUri.toString(), roomId, loopback, urlParameters);
 
-
 {
-  // my addition
+// my addition
   // PeerConnection is created later on and it generated the offer SDPObserver and PCObserver
   String action = getIntent().getAction();
 
-  //this.remote_contact = (Contact) getIntent().getExtras().get("EXTRA_CONTACT");
   if (action.equals("ACTION_OUTGOING_CALL")) {
-    this.contact_name = intent.getStringExtra("EXTRA_CONTACT_NAME");
-    this.contact_address = intent.getStringExtra("EXTRA_CONTACT_ADDRESS");
-    this.contact_port = intent.getIntExtra("EXTRA_CONTACT_PORT", MainService.serverPort);
-    //String sdp_offer = intent.getStringExtra("EXTRA_SDP_OFFER");
+    appRtcClient = MainService.currentCallInstance;
+    appRtcClient.setEventListener(this);
   } else if (action.equals("ACTION_INCOMING_CALL")) {
-    // no socket needed, as we open close the control connection and now open th webrtc connection
-    this.contact_name = intent.getStringExtra("EXTRA_CONTACT_NAME");
-    this.contact_address = intent.getStringExtra("EXTRA_CONTACT_ADDRESS");
-    this.contact_port = intent.getIntExtra("EXTRA_CONTACT_PORT", MainService.serverPort);
-    String sdp_offer = intent.getStringExtra("EXTRA_SDP_OFFER");
-    SessionDescription sdp = new SessionDescription(SessionDescription.Type.fromCanonicalForm("offer"), sdp_offer);
-    // TODO: use sdp!
+    appRtcClient = MainService.currentCallInstance;
+    appRtcClient.setEventListener(this);
   } else {
     //TODO: exit?
     Log.e(TAG, "invalid action: " + action);
+    finish();
   }
 }
 
@@ -482,7 +419,7 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
     peerConnectionClient = new PeerConnectionClient(
         getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
     PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-    options.disableNetworkMonitor = true; // from email by dante carvalho to fix connection in case of tethering
+    //options.disableNetworkMonitor = true; // from email by dante carvalho to fix connection in case of tethering
     //if (loopback) {
     //  options.networkIgnoreMask = 0;
     //}
@@ -522,7 +459,7 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
     startActivityForResult(
         mediaProjectionManager.createScreenCaptureIntent(), CAPTURE_PERMISSION_REQUEST_CODE);
   }
-
+*/
   // we first started to ask for permission
   // if successfull => start call
   @Override
@@ -533,14 +470,13 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
       startCall();
     }
   }
-  */
 
   private boolean useCamera2() {
-    return Camera2Enumerator.isSupported(this) && getIntent().getBooleanExtra(EXTRA_CAMERA2, true);
+    return Camera2Enumerator.isSupported(this) && getIntent().getBooleanExtra("EXTRA_CAMERA2", true);
   }
 
   private boolean captureToTexture() {
-    return getIntent().getBooleanExtra(EXTRA_CAPTURETOTEXTURE_ENABLED, false);
+    return true; //getIntent().getBooleanExtra(EXTRA_CAPTURETOTEXTURE_ENABLED, false);
   }
 
   private @Nullable VideoCapturer createCameraCapturer(CameraEnumerator enumerator) {
@@ -694,8 +630,8 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
 
     // Start room connection.
     //logAndToast(getString(R.string.connecting_to, roomConnectionParameters.roomUrl));
-    logAndToast("connect to " + this.contact_name);
-    appRtcClient.connectToRoom(this.contact_address, this.contact_port);
+    logAndToast("appRtcClient.connectToRoom");
+    appRtcClient.connectToRoom(); //this.contact_address, this.contact_port);
 
     // Create and audio manager that will take care of audio routing,
     // audio modes, audio device enumeration etc.
@@ -742,8 +678,10 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
     remoteProxyRenderer.setTarget(null);
     localProxyVideoSink.setTarget(null);
     if (appRtcClient != null) {
+      logAndToast("appRtcClient.disconnectFromRoom");
       appRtcClient.disconnectFromRoom();
       appRtcClient = null;
+      MainService.currentCallInstance = null; // free instance (TODO: use set that uses synchronize)
     }
     if (pipRenderer != null) {
       pipRenderer.release();
@@ -774,25 +712,25 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
   }
 
   private void disconnectWithErrorMessage(final String errorMessage) {
-    /*if (commandLineRun || !activityRunning) {
+    if (/*commandLineRun ||*/ !activityRunning) {
       Log.e(TAG, "Critical error: " + errorMessage);
       disconnect();
-    } else {*/
+    } else {
       new AlertDialog.Builder(this)
-          .setTitle("Connection error")
-          .setMessage(errorMessage)
-          .setCancelable(false)
-          .setNeutralButton(R.string.ok,
-              new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int id) {
-                  dialog.cancel();
-                  disconnect();
-                }
-              })
-          .create()
-          .show();
-    //}
+              .setTitle("Connection error")
+              .setMessage(errorMessage)
+              .setCancelable(false)
+              .setNeutralButton(R.string.ok,
+                      new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int id) {
+                          dialog.cancel();
+                          disconnect();
+                        }
+                      })
+              .create()
+              .show();
+    }
   }
 
   // Log |msg| and Toast about it.
@@ -929,7 +867,7 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
       }
     });
   }
-/*
+
   @Override
   public void onRemoteIceCandidate(final IceCandidate candidate) {
     runOnUiThread(new Runnable() {
@@ -957,7 +895,7 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
       }
     });
   }
-*/
+
   @Override
   public void onChannelClose() {
     runOnUiThread(new Runnable() {
@@ -987,8 +925,10 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
         if (appRtcClient != null) {
           logAndToast("Sending " + desc.type + ", delay=" + delta + "ms");
           if (signalingParameters.initiator) {
+            logAndToast("appRtcClient.sendOfferSdp");
             appRtcClient.sendOfferSdp(desc);
           } else {
+            logAndToast("appRtcClient.sendAnswerSdp");
             appRtcClient.sendAnswerSdp(desc);
           }
         }
@@ -1000,9 +940,9 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
     });
   }
 
-/*
   @Override
   public void onIceCandidate(final IceCandidate candidate) {
+    Log.d(TAG, "appRtcClient.sendLocalIceCandidate");
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
@@ -1015,6 +955,7 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
 
   @Override
   public void onIceCandidatesRemoved(final IceCandidate[] candidates) {
+    Log.d(TAG, "appRtcClient.sendLocalIceCandidateRemovals");
     runOnUiThread(new Runnable() {
       @Override
       public void run() {
@@ -1024,7 +965,7 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
       }
     });
   }
-*/
+
   @Override
   public void onIceConnected() {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
@@ -1046,6 +987,7 @@ CallActivity.onRemoteDescription(final SessionDescription desc) {
     });
   }
 
+// not called?
   @Override
   public void onConnected() {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;

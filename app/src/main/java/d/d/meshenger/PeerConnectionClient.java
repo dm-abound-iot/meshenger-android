@@ -198,12 +198,29 @@ public class PeerConnectionClient {
       this.negotiated = negotiated;
       this.id = id;
     }
+
+    public void debug() {
+      Log.d("DataChannelParameters",
+              "ordered: " + ordered + "\n"
+                      + "maxRetransmitTimeMs" + maxRetransmitTimeMs + "\n"
+                      + "maxRetransmits: " + maxRetransmits + "\n"
+                      + "protocol: " + protocol + "\n"
+                      + "negotiated: " + negotiated + "\n"
+                      + "id: " + id
+      );
+    }
   }
 
   /**
    * Peer connection parameters.
    */
   public static class PeerConnectionParameters {
+    // my own settings
+    public final boolean receiveVideo;
+    public final boolean sendVideo;
+    public final boolean receiveAudio;
+    public final boolean sendAudio;
+
     public final boolean videoCallEnabled;
     //public final boolean loopback;
     //public final boolean tracing;
@@ -227,14 +244,28 @@ public class PeerConnectionClient {
     //public final boolean enableRtcEventLog;
     private final DataChannelParameters dataChannelParameters;
 
-    public PeerConnectionParameters(boolean videoCallEnabled, /*boolean loopback, boolean tracing, */
+    public PeerConnectionParameters(
+        boolean receiveVideo,
+        boolean sendVideo,
+        boolean receiveAudio,
+        boolean sendAudio,
+
+
+        boolean videoCallEnabled, /*boolean loopback, boolean tracing, */
         int videoWidth, int videoHeight, int videoFps, int videoMaxBitrate, String videoCodec,
         boolean videoCodecHwAcceleration, boolean videoFlexfecEnabled, int audioStartBitrate,
         String audioCodec, boolean noAudioProcessing, /*boolean aecDump, boolean saveInputAudioToFile, */
         boolean useOpenSLES, boolean disableBuiltInAEC, boolean disableBuiltInAGC,
         boolean disableBuiltInNS, boolean disableWebRtcAGCAndHPF, /*boolean enableRtcEventLog,*/
         DataChannelParameters dataChannelParameters) {
+
+      this.receiveVideo = receiveVideo;
+      this.sendVideo = sendVideo;
+      this.receiveAudio = receiveAudio;
+      this.sendAudio = sendAudio;
+
       this.videoCallEnabled = videoCallEnabled;
+
       //this.loopback = loopback;
       //this.tracing = tracing;
       this.videoWidth = videoWidth;
@@ -257,6 +288,37 @@ public class PeerConnectionClient {
       //this.enableRtcEventLog = enableRtcEventLog;
       this.dataChannelParameters = dataChannelParameters;
     }
+
+    public void debug() {
+      Log.d("PeerConnectionParameter",
+          "receiveVideo" + receiveVideo + "\n"
+        + "sendVideo" + sendVideo + "\n"
+        + "receiveAudio" + receiveAudio + "\n"
+        + "sendAudio" + sendAudio + "\n"
+
+        + "videoCallEnabled: " + videoCallEnabled + "\n"
+        //+ "loopback: " + loopback + "\n"
+        //+ "tracing: " + tracing + "\n"
+        + "videoWidth: " + videoWidth + "\n"
+        + "videoHeight: " + videoHeight + "\n"
+        + "videoFps: " + videoFps + "\n"
+        + "videoMaxBitrate: " + videoMaxBitrate + "\n"
+        + "videoCodec: " + videoCodec + "\n"
+        + "videoFlexfecEnabled: " + videoFlexfecEnabled + "\n"
+        + "videoCodecHwAcceleration: " + videoCodecHwAcceleration + "\n"
+        + "audioStartBitrate: " + audioStartBitrate + "\n"
+        + "audioCodec: " + audioCodec + "\n"
+        + "noAudioProcessing: " + noAudioProcessing + "\n"
+        //+ "aecDump: " + aecDump + "\n"
+        //+ "saveInputAudioToFile: " + saveInputAudioToFile + "\n"
+        + "useOpenSLES: " + useOpenSLES + "\n"
+        + "disableBuiltInAEC: " + disableBuiltInAEC + "\n"
+        + "disableBuiltInAGC: " + disableBuiltInAGC + "\n"
+        + "disableBuiltInNS: " + disableBuiltInNS + "\n"
+        + "disableWebRtcAGCAndHPF: " + disableWebRtcAGCAndHPF + "\n"
+        //+ "enableRtcEventLog: " + enableRtcEventLog + "\n"
+        + "dataChannelParameters: " + dataChannelParameters);
+    }
   }
 
   /**
@@ -271,12 +333,12 @@ public class PeerConnectionClient {
     /**
      * Callback fired once local Ice candidate is generated.
      */
-    //void onIceCandidate(final IceCandidate candidate);
+    void onIceCandidate(final IceCandidate candidate);
 
     /**
      * Callback fired once local ICE candidates are removed.
      */
-    //void onIceCandidatesRemoved(final IceCandidate[] candidates);
+    void onIceCandidatesRemoved(final IceCandidate[] candidates);
 
     /**
      * Callback fired once connection is established (IceConnectionState is
@@ -371,19 +433,7 @@ public class PeerConnectionClient {
     this.localRender = localRender;
     this.remoteSinks = remoteSinks;
     this.videoCapturer = videoCapturer;
-
     this.iceServers = iceServers;
-    /*
-    for (String url : iceServers) {
-      PeerConnection.IceServer turnServer =
-            PeerConnection.IceServer.builder(url)
-              .setUsername("")
-              .setPassword("")
-              .createIceServer();
-      this.iceServers.add(turnServer);
-    }
-     */
-
     executor.execute(() -> {
       try {
         createMediaConstraintsInternal();
@@ -1212,12 +1262,12 @@ public class PeerConnectionClient {
   private class PCObserver implements PeerConnection.Observer {
     @Override
     public void onIceCandidate(final IceCandidate candidate) {
-      //executor.execute(() -> events.onIceCandidate(candidate));
+      executor.execute(() -> events.onIceCandidate(candidate));
     }
 
     @Override
     public void onIceCandidatesRemoved(final IceCandidate[] candidates) {
-      //executor.execute(() -> events.onIceCandidatesRemoved(candidates));
+      executor.execute(() -> events.onIceCandidatesRemoved(candidates));
     }
 
     @Override

@@ -54,11 +54,6 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
         TabLayout tabLayout = findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
 
-        // ask for audio recording permissions
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 2);
-        }
-
         this.eventListAccessed = new Date();
 
         LocalBroadcastManager.getInstance(this).registerReceiver(refreshEventListReceiver, new IntentFilter("refresh_event_list"));
@@ -194,6 +189,8 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
     protected void onResume() {
         log("OnResume");
         super.onResume();
+
+        checkPermissions();
     }
 
     @Override
@@ -202,12 +199,40 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
         super.onPause();
     }
 
+    private void checkPermissions() {
+        if (MainService.db.getSettings().getSendAudio()) {
+            if (!Utils.hasPermission(this, Manifest.permission.RECORD_AUDIO)) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 1);
+                return;
+            }
+        }
+
+        if (MainService.db.getSettings().getSendVideo()) {
+            if (!Utils.hasPermission(this, Manifest.permission.CAMERA)) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 2);
+                return;
+            }
+        }
+    }
+
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-            Toast.makeText(this, R.string.permission_mic, Toast.LENGTH_LONG).show();
-            finish();
+        switch (requestCode) {
+            case 1:
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Microphone disabled by default", Toast.LENGTH_LONG).show();
+                    MainService.db.getSettings().setSendAudio(false);
+                }
+                break;
+            case 2:
+                if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                    Toast.makeText(this, "Camera disabled by default", Toast.LENGTH_LONG).show();
+                    MainService.db.getSettings().setSendVideo(false);
+                }
+                break;
+            default:
+                Log.e(this, "Unknown permission requestCode: " + requestCode);
         }
     }
 

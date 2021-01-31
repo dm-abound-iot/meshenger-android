@@ -70,8 +70,8 @@ class ContactListAdapter extends ArrayAdapter<Contact> {
                         100, // top
                         100, // right 
                         100, // bottom 
-                        0.0, // startAngle 
-                        360.0 * pc, // sweepAngle
+                        0, // startAngle
+                        360 * pc, // sweepAngle
                         false, // useCenter
                         p);
                     }

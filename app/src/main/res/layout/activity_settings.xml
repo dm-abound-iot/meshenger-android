@@ -175,6 +175,122 @@
             </RelativeLayout>
 
             <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Enable Microphone"
+                    android:textSize="25dp"
+                    android:textColor="?attr/primaryTextColor"  />
+
+                <CheckBox
+                    android:id="@+id/checkBoxSendAudio"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_margin="5dp"
+                    android:textColor="?attr/secondaryTextColor"  />
+
+            </RelativeLayout>
+
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Enable Speaker"
+                    android:textSize="25dp"
+                    android:textColor="?attr/primaryTextColor"  />
+
+                <CheckBox
+                    android:id="@+id/checkBoxReceiveAudio"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_margin="5dp"
+                    android:textColor="?attr/secondaryTextColor"  />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Enable Camera"
+                    android:textSize="25dp"
+                    android:textColor="?attr/primaryTextColor"  />
+
+                <CheckBox
+                    android:id="@+id/checkBoxSendVideo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_margin="5dp"
+                    android:textColor="?attr/secondaryTextColor"  />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Enable Video"
+                    android:textSize="25dp"
+                    android:textColor="?attr/primaryTextColor"  />
+
+                <CheckBox
+                    android:id="@+id/checkBoxReceiveVideo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_margin="5dp"
+                    android:textColor="?attr/secondaryTextColor"  />
+
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Accept Calls Automatically"
+                    android:textSize="25dp"
+                    android:textColor="?attr/primaryTextColor"  />
+
+                <CheckBox
+                    android:id="@+id/checkBoxAutoAcceptCall"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentTop="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_margin="5dp"
+                    android:textColor="?attr/secondaryTextColor"  />
+
+            </RelativeLayout>
+
+            <RelativeLayout
                 android:id="@+id/changeDevelopmentModeLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

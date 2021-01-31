@@ -8,16 +8,25 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 
 class Database {
-    Settings settings;
-    ArrayList<Contact> contacts;
+    private Settings settings;
+    private ArrayList<Contact> contacts;
     static String version = "3.1.0"; // current version
 
     Database() {
         this.contacts = new ArrayList<>();
         this.settings = new Settings();
+    }
+
+    public Settings getSettings() {
+        return settings;
+    }
+
+    public List<Contact> getContacts() {
+        return contacts;
     }
 
     public void addContact(Contact contact) {

@@ -25,7 +25,7 @@ public interface AppRTCClient {
    * parameters. Once connection is established onConnectedToRoom()
    * callback with room parameters is invoked.
    */
-  void connectToRoom(String address, int port);
+  void connectToRoom(/*String address, int port*/);
 
   /**
    * Send offer SDP to the other participant.
@@ -40,12 +40,12 @@ public interface AppRTCClient {
   /**
    * Send Ice candidate to the other participant.
    */
-  //void sendLocalIceCandidate(final IceCandidate candidate);
+  void sendLocalIceCandidate(final IceCandidate candidate);
 
   /**
    * Send removed ICE candidates to the other participant.
    */
-  //void sendLocalIceCandidateRemovals(final IceCandidate[] candidates);
+  void sendLocalIceCandidateRemovals(final IceCandidate[] candidates);
 
   /**
    * Disconnect from room.
@@ -97,12 +97,12 @@ public interface AppRTCClient {
     /**
      * Callback fired once remote Ice candidate is received.
      */
-    //void onRemoteIceCandidate(final IceCandidate candidate);
+    void onRemoteIceCandidate(final IceCandidate candidate);
 
     /**
      * Callback fired once remote Ice candidate removals are received.
      */
-    //void onRemoteIceCandidatesRemoved(final IceCandidate[] candidates);
+    void onRemoteIceCandidatesRemoved(final IceCandidate[] candidates);
 
     /**
      * Callback fired once channel is closed.

@@ -15,6 +15,14 @@ public class Settings {
     private boolean nightMode;
     private boolean blockUnknown;
     private boolean developmentMode;
+
+    // new settings
+    private boolean sendVideo;
+    private boolean receiveVideo;
+    private boolean sendAudio;
+    private boolean receiveAudio;
+    private boolean autoAcceptCall;
+
     private List<String> addresses;
     // ICE (Interactive Connectivity Establishment) servers implement STUN and TURN
     private List<String> iceServers;
@@ -26,6 +34,11 @@ public class Settings {
         this.nightMode = false;
         this.blockUnknown = false;
         this.developmentMode = false;
+        this.sendVideo = true;
+        this.receiveVideo = true;
+        this.sendAudio = true;
+        this.receiveAudio = true;
+        this.autoAcceptCall = false;
         this.addresses = new ArrayList<>();
         this.iceServers = new ArrayList<>();
     }
@@ -58,24 +71,64 @@ public class Settings {
         return nightMode;
     }
 
-    public void setNightMode(boolean nightMode) {
-        this.nightMode = nightMode;
+    public void setNightMode(boolean nightModeEnabled) {
+        this.nightMode = nightModeEnabled;
     }
 
     public boolean getBlockUnknown() {
         return blockUnknown;
     }
 
-    public void setBlockUnknown(boolean blockUnknown) {
-        this.blockUnknown = blockUnknown;
+    public void setBlockUnknown(boolean blockUnknownEnabled) {
+        this.blockUnknown = blockUnknownEnabled;
     }
 
     public boolean getDevelopmentMode() {
         return developmentMode;
     }
 
-    public void setDevelopmentMode(boolean developmentMode) {
-        this.developmentMode = developmentMode;
+    public void setDevelopmentMode(boolean developmentModeEnabled) {
+        this.developmentMode = developmentModeEnabled;
+    }
+
+    public boolean getSendVideo() {
+        return sendVideo;
+    }
+
+    public void setSendVideo(boolean sendVideo) {
+        this.sendVideo = sendVideo;
+    }
+
+    public boolean getReceiveVideo() {
+        return receiveVideo;
+    }
+
+    public void setReceiveVideo(boolean receiveVideo) {
+        this.receiveVideo = receiveVideo;
+    }
+
+    public boolean getSendAudio() {
+        return sendAudio;
+    }
+
+    public void setSendAudio(boolean sendAudio) {
+        this.sendAudio = sendAudio;
+    }
+
+    public boolean getReceiveAudio() {
+        return receiveAudio;
+    }
+
+    public void setReceiveAudio(boolean receiveAudio) {
+        this.receiveAudio = receiveAudio;
+    }
+
+    public boolean getAutoAcceptCall() {
+        return autoAcceptCall;
+    }
+
+    public void setAutoAcceptCall(boolean autoAcceptCall) {
+        this.autoAcceptCall = autoAcceptCall;
     }
 
     public List<String> getAddresses() {
@@ -89,6 +142,7 @@ public class Settings {
     public void addAddress(String address) {
         for (String addr : this.getAddresses()) {
             if (addr.equalsIgnoreCase(address)) {
+                Log.w("Settings", "Try to add duplicate address: " + addr);
                 return;
             }
         }
@@ -111,6 +165,11 @@ public class Settings {
         s.nightMode = obj.getBoolean("night_mode");
         s.blockUnknown = obj.getBoolean("block_unknown");
         s.developmentMode = obj.getBoolean("development_mode");
+        s.sendVideo = obj.getBoolean("send_video");
+        s.receiveVideo = obj.getBoolean("receive_video");
+        s.sendAudio = obj.getBoolean("send_audio");
+        s.receiveAudio = obj.getBoolean("receive_audio");
+        s.autoAcceptCall = obj.getBoolean("auto_accept_call");
 
         JSONArray addresses = obj.getJSONArray("addresses");
         for (int i = 0; i < addresses.length(); i += 1) {
@@ -133,6 +192,11 @@ public class Settings {
         obj.put("night_mode", s.nightMode);
         obj.put("block_unknown", s.blockUnknown);
         obj.put("development_mode", s.developmentMode);
+        obj.put("send_video", s.sendVideo);
+        obj.put("receive_video", s.receiveVideo);
+        obj.put("send_audio", s.sendAudio);
+        obj.put("receive_audio", s.receiveAudio);
+        obj.put("auto_accept_call", s.autoAcceptCall);
 
         JSONArray addresses = new JSONArray();
         for (int i = 0; i < s.addresses.size(); i += 1) {
