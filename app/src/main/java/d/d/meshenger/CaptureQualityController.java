@@ -98,7 +98,7 @@ public class CaptureQualityController implements SeekBar.OnSeekBarChangeListener
 
   @Override
   public void onStopTrackingTouch(SeekBar seekBar) {
-    callEvents.onCaptureFormatChange(width, height, framerate);
+    //callEvents.onCaptureFormatChange(width, height, framerate);
   }
 
   // Return the highest frame rate possible based on bandwidth and format.

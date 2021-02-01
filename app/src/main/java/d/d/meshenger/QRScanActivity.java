@@ -10,6 +10,7 @@ import android.content.pm.PackageManager;
 import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -32,6 +33,7 @@ import java.util.List;
 
 
 public class QRScanActivity extends MeshengerActivity implements BarcodeCallback {
+	private static final String TAG = "QRScanActivity";
     private DecoratedBarcodeView barcodeView;
 
     @Override
@@ -83,23 +85,25 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         } else {
             // no conflict
             contacts.addContact(new_contact);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("refresh_contact_list"));
             finish();
         }
     }
 
-    private void showPubkeyConflictDialog(Contact new_contact, Contact other_contact) {
+    private void showPubkeyConflictDialog(Contact new_contact, Contact old_contact) {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_add_contact_pubkey_conflict);
 
-        TextView nameTextView = dialog.findViewById(R.id.NameTextView);
+        TextView contactTextView = dialog.findViewById(R.id.NameTextView);
+
         Button abortButton = dialog.findViewById(R.id.AbortButton);
         Button replaceButton = dialog.findViewById(R.id.ReplaceButton);
 
-        nameTextView.setText(other_contact.getName());
+        contactTextView.setText(new_contact.getName() + " => " + old_contact.getName());
 
         replaceButton.setOnClickListener((View v) -> {
             Contacts contacts = MainService.instance.getContacts();
-            contacts.deleteContact(other_contact.getPublicKey());
+            contacts.deleteContact(old_contact.getPublicKey());
             contacts.addContact(new_contact);
 
             // done
@@ -117,7 +121,7 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         dialog.show();
     }
 
-    private void showNameConflictDialog(Contact new_contact, Contact other_contact) {
+    private void showNameConflictDialog(Contact new_contact, Contact old_contact) {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_add_contact_name_conflict);
 
@@ -126,11 +130,11 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         Button replaceButton = dialog.findViewById(R.id.ReplaceButton);
         Button renameButton = dialog.findViewById(R.id.RenameButton);
 
-        nameEditText.setText(other_contact.getName());
+        nameEditText.setText(old_contact.getName());
 
         replaceButton.setOnClickListener((View v) -> {
             Contacts contacts = MainService.instance.getContacts();
-            contacts.deleteContact(other_contact.getPublicKey());
+            contacts.deleteContact(old_contact.getPublicKey());
             contacts.addContact(new_contact);
 
             // done
@@ -242,11 +246,6 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         if (barcodeView != null) {
             barcodeView.pause();
         }
-    }
-
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
     }
 
     private void initCamera() {

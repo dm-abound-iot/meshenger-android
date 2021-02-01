@@ -639,9 +639,10 @@ public class PeerConnectionClient {
     // Create SDP constraints.
     sdpMediaConstraints = new MediaConstraints();
     sdpMediaConstraints.mandatory.add(
-        new MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true"));
+        new MediaConstraints.KeyValuePair(
+          "OfferToReceiveAudio", Boolean.toString(peerConnectionParameters.receiveAudio))); //"true")); 
     sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-        "OfferToReceiveVideo", Boolean.toString(isVideoCallEnabled())));
+        "OfferToReceiveVideo", Boolean.toString(peerConnectionParameters.receiveVideo))); // isVideoCallEnabled())));
   }
 
   private void createPeerConnectionInternal() {

@@ -75,20 +75,6 @@ public class QRShowActivity extends MeshengerActivity {
         }
     }
 
-/*
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-       // if (this.binder != null) {
-        //    unbindService(this);
-        //}
-    }
-
-    private void bindService() {
-        Intent serviceIntent = new Intent(this, MainService.class);
-        bindService(serviceIntent, this, Service.BIND_AUTO_CREATE);
-    }
-*/
     private void generateQR() throws Exception {
         if (this.contact == null) {
             // export own contact
@@ -106,25 +92,7 @@ public class QRShowActivity extends MeshengerActivity {
             Toast.makeText(this, R.string.contact_has_no_address_warning, Toast.LENGTH_SHORT).show();
         }
     }
-/*
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        this.binder = (MainService.MainBinder) iBinder;
 
-        try {
-            generateQR();
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, e.getMessage(), Toast.LENGTH_LONG).show();
-            finish();
-        }
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-        this.binder = null;
-    }
-*/
     private BroadcastReceiver receiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {

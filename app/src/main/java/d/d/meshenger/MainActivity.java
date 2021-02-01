@@ -39,30 +39,6 @@ public class MainActivity extends MeshengerActivity {
     private int currentPage = 0;
     private Date eventListAccessed;
 
-/*
-    // A reference to the service used to get location updates.
-    private MainService mService = null;
-
-    // Tracks the bound state of the service.
-    private boolean mBound = false;
-
-    // Monitors the state of the connection to the service.
-    private final ServiceConnection mServiceConnection = new ServiceConnection() {
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            MainService.LocalBinder binder = (MainService.LocalBinder) service;
-            mService = binder.getService();
-            mBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mService = null;
-            mBound = false;
-        }
-    };
-*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         Log.d(this, "onCreate");
@@ -82,8 +58,6 @@ public class MainActivity extends MeshengerActivity {
 
         LocalBroadcastManager.getInstance(this).registerReceiver(refreshEventListReceiver, new IntentFilter("refresh_event_list"));
         LocalBroadcastManager.getInstance(this).registerReceiver(refreshContactListReceiver, new IntentFilter("refresh_contact_list"));
-
-        //bindService(new Intent(this, MainService.class), mServiceConnection, Service.BIND_AUTO_CREATE);
 
         // in case the language has changed
         this.sectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
@@ -199,13 +173,7 @@ public class MainActivity extends MeshengerActivity {
         checkPermissions();
     }
 
-/*
-    @Override
-    protected void onPause() {
-        log("onPause");
-        super.onPause();
-    }*/
-
+    // move to CallActivity?
     private void checkPermissions() {
         Log.d(TAG, "checkPermissions");
         Settings settings = MainService.instance.getSettings();

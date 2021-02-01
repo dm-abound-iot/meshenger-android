@@ -34,8 +34,8 @@ public class HudFragment extends Fragment {
   private TextView hudViewVideoSend;
   private TextView hudViewVideoRecv;
   private ImageButton toggleDebugButton;
-  private boolean videoCallEnabled;
-  private boolean displayHud;
+  private boolean videoCallEnabled = true;
+  private boolean displayHud = false;
   private volatile boolean isRunning;
   //private CpuMonitor cpuMonitor;
 
@@ -69,13 +69,13 @@ public class HudFragment extends Fragment {
   @Override
   public void onStart() {
     super.onStart();
-
+/*
     Bundle args = getArguments();
     if (args != null) {
       videoCallEnabled = args.getBoolean("CallActivity.EXTRA_VIDEO_CALL", true);
       displayHud = args.getBoolean("CallActivity.EXTRA_DISPLAY_HUD", false);
-    }
-    int visibility = displayHud ? View.VISIBLE : View.INVISIBLE;
+    }*/
+    int visibility = View.VISIBLE; //displayHud ? View.VISIBLE : View.INVISIBLE;
     encoderStatView.setVisibility(visibility);
     toggleDebugButton.setVisibility(visibility);
     hudViewsSetProperties(View.INVISIBLE);

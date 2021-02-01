@@ -138,11 +138,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   // Controls
   private CallFragment callFragment;
   private HudFragment hudFragment;
+  private WaitFragment waitFragment;
   //private CpuMonitor cpuMonitor;
-
-  // TODO
-  private Vibrator vibrator = null;
-  private Ringtone ringtone = null;
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -164,10 +161,11 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     signalingParameters = null;
 
     // Create UI controls.
-    pipRenderer = findViewById(R.id.pip_video_view); // localRenderer
-    fullscreenRenderer = findViewById(R.id.fullscreen_video_view); // remoteRenderer
+    pipRenderer = findViewById(R.id.pip_video_view);
+    fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
     callFragment = new CallFragment();
     hudFragment = new HudFragment();
+    waitFragment = new WaitFragment();
 
     // Show/hide call control fragment on view click.
     View.OnClickListener listener = new View.OnClickListener() {
@@ -347,8 +345,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
 */
 
     // Send intent arguments to fragments.
-    callFragment.setArguments(intent.getExtras());
-    hudFragment.setArguments(intent.getExtras());
+    //callFragment.setArguments(intent.getExtras());
+    //hudFragment.setArguments(intent.getExtras());
     // Activate call and HUD fragments and start the call.
     FragmentTransaction ft = getFragmentManager().beginTransaction();
     ft.add(R.id.call_fragment_container, callFragment);
@@ -381,44 +379,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     //} else {
       startCall();
     //}
-  }
-
-  private void startRinging() {
-      Log.d(TAG, "startRinging");
-      int ringerMode = ((AudioManager) getSystemService(AUDIO_SERVICE)).getRingerMode();
-
-      if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
-          return;
-      }
-
-      vibrator = ((Vibrator) getSystemService(VIBRATOR_SERVICE));
-      long[] pattern = {1500, 800, 800, 800};
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-          VibrationEffect vibe = VibrationEffect.createWaveform(pattern, 0);
-          vibrator.vibrate(vibe);
-      } else {
-          vibrator.vibrate(pattern, 0);
-      }
-
-      if (ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
-          return;
-      }
-
-      ringtone = RingtoneManager.getRingtone(this, RingtoneManager.getActualDefaultRingtoneUri(getApplicationContext(), RingtoneManager.TYPE_RINGTONE));
-      ringtone.play();
-  }
-
-  private void stopRinging(){
-      Log.d(TAG, "stopRinging");
-      if (vibrator != null) {
-          vibrator.cancel();
-          vibrator = null;
-      }
-
-      if (ringtone != null){
-          ringtone.stop();
-          ringtone = null;
-      }
   }
 
   @TargetApi(17)
@@ -549,7 +509,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   protected void onDestroy() {
     Thread.setDefaultUncaughtExceptionHandler(null);
-    stopRinging();
     disconnect();
     if (logToast != null) {
       logToast.cancel();
@@ -576,12 +535,14 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     fullscreenRenderer.setScalingType(scalingType);
   }
 
+/*
   @Override
   public void onCaptureFormatChange(int width, int height, int framerate) {
     if (peerConnectionClient != null) {
       peerConnectionClient.changeCaptureFormat(width, height, framerate);
     }
   }
+*/
 
   @Override
   public boolean onToggleMic() {
@@ -594,9 +555,11 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
 
   // Helper functions.
   private void toggleCallControlFragmentVisibility() {
+    Log.d(TAG, "toggleCallControlFragmentVisibility");
     if (!connected || !callFragment.isAdded()) {
       return;
     }
+
     // Show/hide call control fragment
     callControlFragmentVisible = !callControlFragmentVisible;
     FragmentTransaction ft = getFragmentManager().beginTransaction();
