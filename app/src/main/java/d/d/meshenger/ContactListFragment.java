@@ -23,6 +23,7 @@ import android.widget.PopupMenu;
 
 import org.json.JSONException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static android.os.Looper.getMainLooper;
@@ -39,7 +40,7 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        log("onCreateView");
+        Log.d(this, "onCreateView");
         View view = inflater.inflate(R.layout.fragment_contact_list, container, false);
 
         mainActivity = (MainActivity) getActivity();
@@ -58,7 +59,7 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
     }
 
     private void runFabAnimation(View fab) {
-        log("runFabAnimation");
+        Log.d(this, "runFabAnimation");
         AnimationSet scanSet = new AnimationSet(this.mainActivity, null);
         AnimationSet generateSet = new AnimationSet(this.mainActivity, null);
 
@@ -123,7 +124,7 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
         builder.setCancelable(false); // prevent key shortcut to cancel dialog
 
         builder.setPositiveButton(R.string.yes, (DialogInterface dialog, int id) -> {
-            this.mainActivity.binder.deleteContact(publicKey);
+            MainService.instance.getContacts().deleteContact(publicKey);
             dialog.cancel();
         });
 
@@ -137,14 +138,14 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
     }
 
     void refreshContactList() {
-        log("refreshContactList");
-        if (this.mainActivity == null || this.mainActivity.binder == null) {
-            log("refreshContactList early return");
+        Log.d(this, "refreshContactList");
+        if (this.mainActivity == null) {
+            Log.d(this, "refreshContactList early return");
             return;
         }
 
         new Handler(getMainLooper()).post(() -> {
-            List<Contact> contacts = ContactListFragment.this.mainActivity.binder.getContactsCopy();
+            List<Contact> contacts = MainService.instance.getContacts().getContactListCopy();
             contactListView.setAdapter(new ContactListAdapter(ContactListFragment.this.mainActivity, R.layout.item_contact, contacts));
             contactListView.setOnItemClickListener(ContactListFragment.this);
             contactListView.setOnItemLongClickListener((AdapterView<?> adapterView, View view, int i, long l) -> {
@@ -185,10 +186,10 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
                         setBlocked(publicKey, false);
                     } else if (title.equals(ping)) {
                     	// TODO: ping contact
-                    	log("Ping not implemented here");
+                    	Log.d(this, "Ping not implemented here");
                     } else if (title.equals(qr)) {
                         Intent intent = new Intent(ContactListFragment.this.mainActivity, QRShowActivity.class);
-                        intent.putExtra("EXTRA_CONTACT", contact);
+                        intent.putExtra("EXTRA_CONTACT", contact.getPublicKey());
                         startActivity(intent);
                     }
                     return false;
@@ -200,15 +201,16 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
     }
 
     private void setBlocked(byte[] publicKey, boolean blocked) {
-        Contact contact = this.mainActivity.binder.getContactByPublicKey(publicKey);
+        Contacts contacts = MainService.instance.getContacts();
+        Contact contact = contacts.getContactByPublicKey(publicKey);
         if (contact != null) {
             contact.setBlocked(blocked);
-            this.mainActivity.binder.addContact(contact);
+            contacts.addContact(contact);
         }
     }
 
     private void shareContact(Contact c) {
-        log("shareContact");
+        Log.d(this, "shareContact");
         try {
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("text/plain");
@@ -220,7 +222,7 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
     }
 
     private void showContactEditDialog(byte[] publicKey, String name) {
-        log("showContactEditDialog");
+        Log.d(this, "showContactEditDialog");
         EditText et = new EditText(this.mainActivity);
         et.setText(name);
         AlertDialog dialog = new AlertDialog.Builder(this.mainActivity)
@@ -230,10 +232,10 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
             .setPositiveButton(R.string.ok, (DialogInterface dialogInterface, int i) -> {
                 String newName = et.getText().toString();
                 if (newName.length() > 0) {
-                    Contact contact = this.mainActivity.binder.getContactByPublicKey(publicKey);
+                    Contact contact = MainService.instance.getContacts().getContactByPublicKey(publicKey);
                     if (contact != null) {
                         contact.setName(newName);
-                        this.mainActivity.binder.addContact(contact);
+                        MainService.instance.getContacts().addContact(contact);
                     }
                 }
             }).show();
@@ -247,15 +249,11 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-        log("onItemClick");
-        Contact contact = this.mainActivity.binder.getContactsCopy().get(i);
-        MainService.currentCallInstance = new DirectRTCClient(contact);
+        Log.d(this, "onItemClick");
+        Contact contact = MainService.instance.getContacts().getContactList().get(i);
+        MainService.currentCall = new DirectRTCClient(contact);
         Intent intent = new Intent(this.mainActivity, CallActivity.class);
         intent.setAction("ACTION_OUTGOING_CALL");
         startActivity(intent);
-    }
-
-    private static void log(String s) {
-        Log.d(ContactListFragment.class.getSimpleName(), s);
     }
 }

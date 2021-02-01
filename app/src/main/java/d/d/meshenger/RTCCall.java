@@ -37,7 +37,8 @@ import java.util.Collections;
 import java.util.List;
 
 
-public class RTCCall implements DataChannel.Observer {
+public class RTCCall /*implements DataChannel.Observer */ {
+/*
     enum CallState { CONNECTING, RINGING, CONNECTED, DISMISSED, ENDED, ERROR }
 
     private final String StateChangeMessage = "StateChange";
@@ -373,20 +374,20 @@ public class RTCCall implements DataChannel.Observer {
         }
     }
 
-    /*private void initLocalRenderer() {
-        if (this.localRenderer != null) {
-            log("really initng " + (this.sharedContext == null));
-            this.localRenderer.init(this.sharedContext, null);
-            this.localCameraTrack.addSink(localRenderer);
-            this.capturer.startCapture(500, 500, 30);
-        }
-    }*/
+    ///private void initLocalRenderer() {
+     //   if (this.localRenderer != null) {
+     //       log("really initng " + (this.sharedContext == null));
+     //       this.localRenderer.init(this.sharedContext, null);
+     //       this.localCameraTrack.addSink(localRenderer);
+     //       this.capturer.startCapture(500, 500, 30);
+     //   }
+    //}
 
-    /*private void initVideoTrack() {
-        this.sharedContext = EglBase.create().getEglBaseContext();
-        this.capturer = createCapturer(true);
-        this.localCameraTrack = factory.createVideoTrack("video1", factory.createVideoSource(capturer));
-    }*/
+    ///private void initVideoTrack() {
+     //   this.sharedContext = EglBase.create().getEglBaseContext();
+    //    this.capturer = createCapturer(true);
+     //   this.localCameraTrack = factory.createVideoTrack("video1", factory.createVideoSource(capturer));
+    //}
 
     private CameraVideoCapturer createCapturer() {
         CameraEnumerator enumerator = new Camera1Enumerator();
@@ -587,11 +588,11 @@ public class RTCCall implements DataChannel.Observer {
         closeCommSocket();
 
         if (this.upStream != null && state == CallState.CONNECTED) {
-            /*for(AudioTrack track : this.upStream.audioTracks){
-                track.setEnabled(false);
-                track.dispose();
-            }
-            for(VideoTrack track : this.upStream.videoTracks) track.dispose();*/
+            //for(AudioTrack track : this.upStream.audioTracks){
+            //    track.setEnabled(false);
+            //    track.dispose();
+            //}
+            //for(VideoTrack track : this.upStream.videoTracks) track.dispose();
             closePeerConnection();
             //factory.dispose();
         }
@@ -624,4 +625,5 @@ public class RTCCall implements DataChannel.Observer {
     private void log(String s) {
         Log.d(this, s);
     }
+    */
 }

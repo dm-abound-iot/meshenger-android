@@ -4,7 +4,7 @@ import java.net.InetAddress;
 import java.util.Date;
 
 
-class CallEvent {
+class Event {
     enum Type {
         OUTGOING_UNKNOWN,
         OUTGOING_ACCEPTED,
@@ -23,7 +23,7 @@ class CallEvent {
     Type type;
     Date date;
 
-    public CallEvent(byte[] pubKey, InetAddress address, Type type) {
+    public Event(byte[] pubKey, InetAddress address, Type type) {
         this.pubKey = pubKey;
         this.address = address;
         this.type = type;
@@ -31,8 +31,8 @@ class CallEvent {
     }
 
     public boolean isMissedCall() {
-        return this.type == CallEvent.Type.INCOMING_UNKNOWN
-            || this.type == CallEvent.Type.INCOMING_MISSED
-            || this.type == CallEvent.Type.INCOMING_ERROR;
+        return this.type == Event.Type.INCOMING_UNKNOWN
+            || this.type == Event.Type.INCOMING_MISSED
+            || this.type == Event.Type.INCOMING_ERROR;
     }
 }

@@ -30,8 +30,8 @@ import java.util.List;
 
 
 // the main view with tabs
-public class MainActivity extends MeshengerActivity implements ServiceConnection {
-    public MainService.MainBinder binder;
+public class MainActivity extends MeshengerActivity {
+    private static final String TAG = "MainActivity";
     private ViewPager mViewPager;
     private ContactListFragment contactListFragment;
     private EventListFragment eventListFragment;
@@ -39,9 +39,33 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
     private int currentPage = 0;
     private Date eventListAccessed;
 
+/*
+    // A reference to the service used to get location updates.
+    private MainService mService = null;
+
+    // Tracks the bound state of the service.
+    private boolean mBound = false;
+
+    // Monitors the state of the connection to the service.
+    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MainService.LocalBinder binder = (MainService.LocalBinder) service;
+            mService = binder.getService();
+            mBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mService = null;
+            mBound = false;
+        }
+    };
+*/
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        log("onCreate");
+        Log.d(this, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -59,23 +83,7 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
         LocalBroadcastManager.getInstance(this).registerReceiver(refreshEventListReceiver, new IntentFilter("refresh_event_list"));
         LocalBroadcastManager.getInstance(this).registerReceiver(refreshContactListReceiver, new IntentFilter("refresh_contact_list"));
 
-        bindService(new Intent(this, MainService.class), this, Service.BIND_AUTO_CREATE);
-    }
-
-    @Override
-    protected void onDestroy() {
-        log("onDestroy");
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshEventListReceiver);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshContactListReceiver);
-
-        unbindService(this);
-        super.onDestroy();
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        log("OnServiceConnected");
-        this.binder = (MainService.MainBinder) iBinder;
+        //bindService(new Intent(this, MainService.class), mServiceConnection, Service.BIND_AUTO_CREATE);
 
         // in case the language has changed
         this.sectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
@@ -86,12 +94,12 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
         mViewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
-               // ignore scrolling
+                // ignore scrolling
             }
 
             @Override
             public void onPageSelected(int position) {
-                log( "onPageSelected, position: " + position);
+                Log.d(this,  "onPageSelected, position: " + position);
                 MainActivity.this.currentPage = position;
                 if (position == 1) {
                     MainActivity.this.eventListAccessed = new Date();
@@ -100,25 +108,28 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
 
             @Override
             public void onPageScrollStateChanged(int state) {
-               // ignore scrolling
+                // ignore scrolling
             }
         });
 
         contactListFragment.refreshContactList();
         eventListFragment.refreshEventList();
 
-        this.binder.pingContacts();
+        //MainService.pingContacts();
     }
 
     @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-        log("OnServiceDisconnected");
-        this.binder = null;
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(this, "onDestroy");
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshEventListReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshContactListReceiver);
+
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        log("onOptionsItemSelected");
+        Log.d(this,"onOptionsItemSelected");
         int id = item.getItemId();
 
         switch (id) {
@@ -150,14 +161,9 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
     }
 
     private void updateMissedCallsCounter() {
-        // update missed called notification
-        if (MainActivity.this.binder == null) {
-            return;
-        }
-
         int missedCalls = 0;
         Date since = this.eventListAccessed;
-        for (CallEvent event : this.binder.getEventsCopy()) {
+        for (Event event : MainService.instance.getEvents().getEventList()) {
             if (event.date.compareTo(since) >= 0 && event.isMissedCall()) {
                 missedCalls += 1;
             }
@@ -187,27 +193,30 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
 
     @Override
     protected void onResume() {
-        log("OnResume");
+        Log.d(TAG, "OnResume");
         super.onResume();
 
         checkPermissions();
     }
 
+/*
     @Override
     protected void onPause() {
         log("onPause");
         super.onPause();
-    }
+    }*/
 
     private void checkPermissions() {
-        if (MainService.db.getSettings().getSendAudio()) {
+        Log.d(TAG, "checkPermissions");
+        Settings settings = MainService.instance.getSettings();
+        if (settings.getSendAudio()) {
             if (!Utils.hasPermission(this, Manifest.permission.RECORD_AUDIO)) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 1);
                 return;
             }
         }
 
-        if (MainService.db.getSettings().getSendVideo()) {
+        if (settings.getSendVideo()) {
             if (!Utils.hasPermission(this, Manifest.permission.CAMERA)) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 2);
                 return;
@@ -218,17 +227,19 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        Settings settings = MainService.instance.getSettings();
+
         switch (requestCode) {
             case 1:
                 if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Microphone disabled by default", Toast.LENGTH_LONG).show();
-                    MainService.db.getSettings().setSendAudio(false);
+                    settings.setSendAudio(false);
                 }
                 break;
             case 2:
                 if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Camera disabled by default", Toast.LENGTH_LONG).show();
-                    MainService.db.getSettings().setSendVideo(false);
+                    settings.setSendVideo(false);
                 }
                 break;
             default:
@@ -238,7 +249,7 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        log("onCreateOptionsMenu");
+        Log.d(this, "onCreateOptionsMenu");
         getMenuInflater().inflate(R.menu.menu_main_activity, menu);
         return true;
     }
@@ -279,9 +290,5 @@ public class MainActivity extends MeshengerActivity implements ServiceConnection
         public int getCount() {
             return mFragmentList.size();
         }
-    }
-
-    private void log(String s) {
-        Log.d(this, s);
     }
 }

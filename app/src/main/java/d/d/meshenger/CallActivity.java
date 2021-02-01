@@ -18,12 +18,17 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.AudioManager;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.support.annotation.Nullable;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -71,60 +76,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
                                                       PeerConnectionClient.PeerConnectionEvents,
                                                       CallFragment.OnCallEvents {
   private static final String TAG = "CallRTCClient";
-
-/*
-  public static final String EXTRA_ROOMID = "d.d.meshenger.ROOMID";
-  public static final String EXTRA_URLPARAMETERS = "d.d.meshenger.URLPARAMETERS";
-  public static final String EXTRA_LOOPBACK = "d.d.meshenger.LOOPBACK";
-  public static final String EXTRA_VIDEO_CALL = "d.d.meshenger.VIDEO_CALL";
-  public static final String EXTRA_SCREENCAPTURE = "d.d.meshenger.SCREENCAPTURE";
-  public static final String EXTRA_CAMERA2 = "d.d.meshenger.CAMERA2";
-  public static final String EXTRA_VIDEO_WIDTH = "d.d.meshenger.VIDEO_WIDTH";
-  public static final String EXTRA_VIDEO_HEIGHT = "d.d.meshenger.VIDEO_HEIGHT";
-  public static final String EXTRA_VIDEO_FPS = "d.d.meshenger.VIDEO_FPS";
-  public static final String EXTRA_VIDEO_CAPTUREQUALITYSLIDER_ENABLED =
-      "org.appsopt.apprtc.VIDEO_CAPTUREQUALITYSLIDER";
-  public static final String EXTRA_VIDEO_BITRATE = "d.d.meshenger.VIDEO_BITRATE";
-  public static final String EXTRA_VIDEOCODEC = "d.d.meshenger.VIDEOCODEC";
-  public static final String EXTRA_HWCODEC_ENABLED = "d.d.meshenger.HWCODEC";
-  public static final String EXTRA_CAPTURETOTEXTURE_ENABLED = "d.d.meshenger.CAPTURETOTEXTURE";
-  public static final String EXTRA_FLEXFEC_ENABLED = "d.d.meshenger.FLEXFEC";
-  public static final String EXTRA_AUDIO_BITRATE = "d.d.meshenger.AUDIO_BITRATE";
-  public static final String EXTRA_AUDIOCODEC = "d.d.meshenger.AUDIOCODEC";
-  public static final String EXTRA_NOAUDIOPROCESSING_ENABLED =
-      "d.d.meshenger.NOAUDIOPROCESSING";
-  public static final String EXTRA_AECDUMP_ENABLED = "d.d.meshenger.AECDUMP";
-  public static final String EXTRA_SAVE_INPUT_AUDIO_TO_FILE_ENABLED =
-      "d.d.meshenger.SAVE_INPUT_AUDIO_TO_FILE";
-  public static final String EXTRA_OPENSLES_ENABLED = "d.d.meshenger.OPENSLES";
-  public static final String EXTRA_DISABLE_BUILT_IN_AEC = "d.d.meshenger.DISABLE_BUILT_IN_AEC";
-  public static final String EXTRA_DISABLE_BUILT_IN_AGC = "d.d.meshenger.DISABLE_BUILT_IN_AGC";
-  public static final String EXTRA_DISABLE_BUILT_IN_NS = "d.d.meshenger.DISABLE_BUILT_IN_NS";
-  public static final String EXTRA_DISABLE_WEBRTC_AGC_AND_HPF =
-      "d.d.meshenger.DISABLE_WEBRTC_GAIN_CONTROL";
-  public static final String EXTRA_DISPLAY_HUD = "d.d.meshenger.DISPLAY_HUD";
-  public static final String EXTRA_TRACING = "d.d.meshenger.TRACING";
-  public static final String EXTRA_CMDLINE = "d.d.meshenger.CMDLINE";
-  public static final String EXTRA_RUNTIME = "d.d.meshenger.RUNTIME";
-  //public static final String EXTRA_VIDEO_FILE_AS_CAMERA = "d.d.meshenger.VIDEO_FILE_AS_CAMERA";
-  public static final String EXTRA_SAVE_REMOTE_VIDEO_TO_FILE =
-      "d.d.meshenger.SAVE_REMOTE_VIDEO_TO_FILE";
-  public static final String EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_WIDTH =
-      "d.d.meshenger.SAVE_REMOTE_VIDEO_TO_FILE_WIDTH";
-  public static final String EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT =
-      "d.d.meshenger.SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT";
-      
-  public static final String EXTRA_USE_VALUES_FROM_INTENT =
-      "d.d.meshenger.USE_VALUES_FROM_INTENT";
-  public static final String EXTRA_DATA_CHANNEL_ENABLED = "d.d.meshenger.DATA_CHANNEL_ENABLED";
-  public static final String EXTRA_ORDERED = "d.d.meshenger.ORDERED";
-  public static final String EXTRA_MAX_RETRANSMITS_MS = "d.d.meshenger.MAX_RETRANSMITS_MS";
-  public static final String EXTRA_MAX_RETRANSMITS = "d.d.meshenger.MAX_RETRANSMITS";
-  public static final String EXTRA_PROTOCOL = "d.d.meshenger.PROTOCOL";
-  public static final String EXTRA_NEGOTIATED = "d.d.meshenger.NEGOTIATED";
-  public static final String EXTRA_ID = "d.d.meshenger.ID";
-  public static final String EXTRA_ENABLE_RTCEVENTLOG = "d.d.meshenger.ENABLE_RTCEVENTLOG";
-*/
   private static final int CAPTURE_PERMISSION_REQUEST_CODE = 1;
 
   // List of mandatory application permissions.
@@ -189,9 +140,9 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   private HudFragment hudFragment;
   //private CpuMonitor cpuMonitor;
 
-  //private String contact_name;
-  //private String contact_address;
-  //private int contact_port;
+  // TODO
+  private Vibrator vibrator = null;
+  private Ringtone ringtone = null;
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -324,7 +275,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
       );
       dataChannelParameters.debug();
     }
-    Settings settings = MainService.db.getSettings();
+    Settings settings = MainService.instance.getSettings();
     peerConnectionParameters = new PeerConnectionParameters(
       settings.getReceiveVideo(),
       settings.getSendVideo(),
@@ -375,10 +326,10 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   String action = getIntent().getAction();
 
   if (action.equals("ACTION_OUTGOING_CALL")) {
-    appRtcClient = MainService.currentCallInstance;
+    appRtcClient = MainService.currentCall;
     appRtcClient.setEventListener(this);
   } else if (action.equals("ACTION_INCOMING_CALL")) {
-    appRtcClient = MainService.currentCallInstance;
+    appRtcClient = MainService.currentCall;
     appRtcClient.setEventListener(this);
   } else {
     //TODO: exit?
@@ -430,6 +381,44 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     //} else {
       startCall();
     //}
+  }
+
+  private void startRinging() {
+      Log.d(TAG, "startRinging");
+      int ringerMode = ((AudioManager) getSystemService(AUDIO_SERVICE)).getRingerMode();
+
+      if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
+          return;
+      }
+
+      vibrator = ((Vibrator) getSystemService(VIBRATOR_SERVICE));
+      long[] pattern = {1500, 800, 800, 800};
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+          VibrationEffect vibe = VibrationEffect.createWaveform(pattern, 0);
+          vibrator.vibrate(vibe);
+      } else {
+          vibrator.vibrate(pattern, 0);
+      }
+
+      if (ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
+          return;
+      }
+
+      ringtone = RingtoneManager.getRingtone(this, RingtoneManager.getActualDefaultRingtoneUri(getApplicationContext(), RingtoneManager.TYPE_RINGTONE));
+      ringtone.play();
+  }
+
+  private void stopRinging(){
+      Log.d(TAG, "stopRinging");
+      if (vibrator != null) {
+          vibrator.cancel();
+          vibrator = null;
+      }
+
+      if (ringtone != null){
+          ringtone.stop();
+          ringtone = null;
+      }
   }
 
   @TargetApi(17)
@@ -560,6 +549,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   protected void onDestroy() {
     Thread.setDefaultUncaughtExceptionHandler(null);
+    stopRinging();
     disconnect();
     if (logToast != null) {
       logToast.cancel();
@@ -681,7 +671,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
       logAndToast("appRtcClient.disconnectFromRoom");
       appRtcClient.disconnectFromRoom();
       appRtcClient = null;
-      MainService.currentCallInstance = null; // free instance (TODO: use set that uses synchronize)
+      MainService.currentCall = null; // free instance (TODO: use set that uses synchronize)
     }
     if (pipRenderer != null) {
       pipRenderer.release();
@@ -837,6 +827,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   // and DirectRTCClient.onTCPMessage (with sdp from offer)
   @Override
   public void onConnectedToRoom(final SignalingParameters params) {
+    // TODO: ringing (if not auto accept)
     runOnUiThread(new Runnable() {
       @Override
       public void run() {

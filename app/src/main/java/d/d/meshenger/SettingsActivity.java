@@ -24,9 +24,7 @@ import android.widget.Toast;
 import java.util.List;
 
 
-public class SettingsActivity extends MeshengerActivity implements ServiceConnection {
-    private MainService.MainBinder binder;
-
+public class SettingsActivity extends MeshengerActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,33 +32,12 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
         setContentView(R.layout.activity_settings);
         setTitle(getResources().getString(R.string.menu_settings));
 
-        bindService();
         initViews();
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (this.binder != null) {
-            unbindService(this);
-        }
-    }
-
-    private void bindService() {
-        // ask MainService to get us the binder object
-        Intent serviceIntent = new Intent(this, MainService.class);
-        bindService(serviceIntent, this, Service.BIND_AUTO_CREATE);
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        this.binder = (MainService.MainBinder) iBinder;
-        initViews();
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-        this.binder = null;
     }
 
     private boolean getIgnoreBatteryOptimizations() {
@@ -72,9 +49,7 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
     }
 
     private void initViews() {
-        if (this.binder == null) {
-            return;
-        }
+        Settings settings = MainService.instance.getSettings();
 
         findViewById(R.id.changeNameLayout).setOnClickListener((View view) -> {
             showChangeNameDialog();
@@ -93,36 +68,36 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
             showChangeIceServersDialog();
         });
 
-        String username = this.binder.getSettings().getUsername();
+        String username = settings.getUsername();
         ((TextView) findViewById(R.id.nameTv)).setText(
             username.length() == 0 ? getResources().getString(R.string.none) : username
         );
 
-        List<String> addresses = this.binder.getSettings().getAddresses();
+        List<String> addresses = settings.getAddresses();
         ((TextView) findViewById(R.id.addressTv)).setText(
             addresses.size() == 0 ? getResources().getString(R.string.none) : Utils.join(addresses)
         );
 
-        String password = this.binder.getDatabasePassword();
+        String password = MainService.instance.getDatabasePassword();
         ((TextView) findViewById(R.id.passwordTv)).setText(
             password.isEmpty() ? getResources().getString(R.string.none) : "********"
         );
 
-        List<String> iceServers = this.binder.getSettings().getIceServers();
+        List<String> iceServers = settings.getIceServers();
         ((TextView) findViewById(R.id.iceServersTv)).setText(
             iceServers.isEmpty() ? getResources().getString(R.string.none) : Utils.join(iceServers)
         );
 
-        boolean blockUnknown = this.binder.getSettings().getBlockUnknown();
+        boolean blockUnknown = settings.getBlockUnknown();
         CheckBox blockUnknownCB = findViewById(R.id.checkBoxBlockUnknown);
         blockUnknownCB.setChecked(blockUnknown);
         blockUnknownCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            this.binder.getSettings().setBlockUnknown(isChecked);
-            this.binder.saveDatabase();
+            settings.setBlockUnknown(isChecked);
+            MainService.instance.saveDatabase();
         });
 
-        boolean nightMode = this.binder.getSettings().getNightMode();
+        boolean nightMode = MainService.instance.getSettings().getNightMode();
         CheckBox nightModeCB = findViewById(R.id.checkBoxNightMode);
         nightModeCB.setChecked(nightMode);
         nightModeCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
@@ -132,56 +107,56 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
             );
 
             // save value
-            this.binder.getSettings().setNightMode(isChecked);
-            this.binder.saveDatabase();
+            settings.setNightMode(isChecked);
+            MainService.instance.saveDatabase();
 
             // apply theme
             this.recreate();
         });
 
-        boolean sendAudio = this.binder.getSettings().getSendAudio();
+        boolean sendAudio = settings.getSendAudio();
         CheckBox sendAudioCB = findViewById(R.id.checkBoxSendAudio);
         sendAudioCB.setChecked(sendAudio);
         sendAudioCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            this.binder.getSettings().setSendAudio(isChecked);
-            this.binder.saveDatabase();
+            settings.setSendAudio(isChecked);
+            MainService.instance.saveDatabase();
         });
 
-        boolean receiveAudio = this.binder.getSettings().getReceiveAudio();
+        boolean receiveAudio = settings.getReceiveAudio();
         CheckBox receiveAudioCB = findViewById(R.id.checkBoxReceiveAudio);
         receiveAudioCB.setChecked(receiveAudio);
         receiveAudioCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            this.binder.getSettings().setReceiveAudio(isChecked);
-            this.binder.saveDatabase();
+            settings.setReceiveAudio(isChecked);
+            MainService.instance.saveDatabase();
         });
 
-        boolean sendVideo = this.binder.getSettings().getSendVideo();
+        boolean sendVideo = settings.getSendVideo();
         CheckBox sendVideoCB = findViewById(R.id.checkBoxSendVideo);
         sendVideoCB.setChecked(sendVideo);
         sendVideoCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            this.binder.getSettings().setSendVideo(isChecked);
-            this.binder.saveDatabase();
+            settings.setSendVideo(isChecked);
+            MainService.instance.saveDatabase();
         });
 
-        boolean receiveVideo = this.binder.getSettings().getReceiveVideo();
+        boolean receiveVideo = settings.getReceiveVideo();
         CheckBox receiveVideoCB = findViewById(R.id.checkBoxReceiveVideo);
         receiveVideoCB.setChecked(receiveVideo);
         receiveVideoCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            this.binder.getSettings().setReceiveVideo(isChecked);
-            this.binder.saveDatabase();
+            settings.setReceiveVideo(isChecked);
+            MainService.instance.saveDatabase();
         });
 
-        boolean autoAcceptCall = this.binder.getSettings().getAutoAcceptCall();
+        boolean autoAcceptCall = settings.getAutoAcceptCall();
         CheckBox autoAcceptCallCB = findViewById(R.id.checkBoxAutoAcceptCall);
         autoAcceptCallCB.setChecked(autoAcceptCall);
         autoAcceptCallCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            this.binder.getSettings().setAutoAcceptCall(isChecked);
-            this.binder.saveDatabase();
+            settings.setAutoAcceptCall(isChecked);
+            MainService.instance.saveDatabase();
         });
 
         boolean ignoreBatteryOptimizations = getIgnoreBatteryOptimizations();
@@ -196,13 +171,13 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
             }
         });
 
-        boolean developmentMode = this.binder.getSettings().getDevelopmentMode();
+        boolean developmentMode = settings.getDevelopmentMode();
         CheckBox developmentModeCB = findViewById(R.id.checkBoxDevelopmentMode);
         developmentModeCB.setChecked(developmentMode);
         developmentModeCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            this.binder.getSettings().setDevelopmentMode(isChecked);
-            this.binder.saveDatabase();
+            settings.setDevelopmentMode(isChecked);
+            MainService.instance.saveDatabase();
         });
 
         if (developmentMode) {
@@ -217,7 +192,8 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
     }
 
     private void showChangeNameDialog() {
-        String username = this.binder.getSettings().getUsername();
+        Settings settings = MainService.instance.getSettings();
+        String username = settings.getUsername();
         EditText et = new EditText(this);
         et.setText(username);
         et.setSelection(username.length());
@@ -227,8 +203,8 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
             .setPositiveButton(R.string.ok, (dialogInterface, i) -> {
                 String new_username = et.getText().toString().trim();
                 if (Utils.isValidName(new_username)) {
-                    this.binder.getSettings().setUsername(new_username);
-                    this.binder.saveDatabase();
+                    settings.setUsername(new_username);
+                    MainService.instance.saveDatabase();
                     initViews();
                 } else {
                     Toast.makeText(this, getResources().getString(R.string.invalid_name), Toast.LENGTH_SHORT).show();
@@ -239,7 +215,7 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
     }
 
     private void showChangePasswordDialog() {
-        String password = this.binder.getDatabasePassword();
+        String password = MainService.instance.getDatabasePassword();
         EditText et = new EditText(this);
         et.setText(password);
         et.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
@@ -249,8 +225,8 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
             .setView(et)
             .setPositiveButton(R.string.ok, (dialogInterface, i) -> {
                 String new_password = et.getText().toString();
-                this.binder.setDatabasePassword(new_password);
-                this.binder.saveDatabase();
+                MainService.instance.setDatabasePassword(new_password);
+                MainService.instance.saveDatabase();
                 initViews();
             })
             .setNegativeButton(getResources().getText(R.string.cancel), null)
@@ -258,7 +234,7 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
     }
 
     private void showChangeIceServersDialog() {
-        Settings settings = SettingsActivity.this.binder.getSettings();
+        Settings settings = MainService.instance.getSettings();
 
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_set_ice_server);
@@ -300,9 +276,5 @@ public class SettingsActivity extends MeshengerActivity implements ServiceConnec
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
         startActivity(intent);
-    }
-
-    private void log(String s) {
-        Log.d(SettingsActivity.class.getSimpleName(), s);
     }
 }

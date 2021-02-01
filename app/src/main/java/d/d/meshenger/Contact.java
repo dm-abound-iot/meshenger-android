@@ -7,16 +7,22 @@ import org.libsodium.jni.Sodium;
 
 import java.io.Serializable;
 import java.net.ConnectException;
+import java.net.Inet4Address;
+import java.net.Inet6Address;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 
 public class Contact implements Serializable {
+    private static final String TAG = "Contact";
     enum State { ONLINE, OFFLINE, UNKNOWN };
 
     private String name;
@@ -83,11 +89,11 @@ public class Contact implements Serializable {
     private InetSocketAddress[] getAllSocketAddresses() {
         Set<InetSocketAddress> list = new HashSet<>();
 
-        if (this.last_working_address != null) {
-            list.add(this.last_working_address);
+        if (last_working_address != null) {
+            list.add(last_working_address);
         }
 
-        for (String address : this.addresses) {
+        for (String address : addresses) {
             try {
                 if (Utils.isMAC(address)) {
                     list.addAll(Utils.getAddressPermutations(address, MainService.serverPort));
@@ -105,20 +111,33 @@ public class Contact implements Serializable {
             Log.d(this, "got address: " + address);
         }
 
+        // sort addresses, prefer last successful address and IPv6
         InetSocketAddress[] addresses = list.toArray(new InetSocketAddress[0]);
-        //Arrays.sort(addresses);
-/*
-        Collections.sort(addrs, new Comparator<InetSocketAddress>() {
+        Arrays.sort(addresses, new Comparator<InetSocketAddress>() {
+            private int addressValue(InetAddress addr) {
+                if (last_working_address != null && last_working_address.getAddress() == addr) {
+                    return 100;
+                }
+                if (addr instanceof Inet6Address) {
+                    Inet6Address addr6 = (Inet6Address) addr;
+                    if (addr6.isAnyLocalAddress()) {
+                        return 50;
+                    }
+                    return 30;
+                }
+                if (addr instanceof Inet4Address) {
+                    Inet4Address addr4 = (Inet4Address) addr;
+                    return 20;
+                }
+                return 0;
+            }
             @Override
             public int compare(InetSocketAddress lhs, InetSocketAddress rhs) {
-                if (lhs instanceof )
-                    getAddress​()
-                isUnresolved()
                 // -1 - less than, 1 - greater than, 0 - equal, all inversed for descending
-                return lhs.customInt > rhs.customInt ? -1 : (lhs.customInt < rhs.customInt) ? 1 : 0;
+                return addressValue(lhs.getAddress()) - addressValue(rhs.getAddress());
             }
         });
-*/
+
         return addresses;
     }
 
@@ -175,18 +194,8 @@ public class Contact implements Serializable {
         Socket socket = null;
         int connectionTimeout = 500;
 
-        /*
-        // try last successful address first
-        if (this.last_working_address != null) {
-            Log.d(this, "try latest address: " + this.last_working_address);
-            socket = this.establishConnection(this.last_working_address, connectionTimeout);
-            if (socket != null) {
-                return socket;
-            }
-        }*/
-
         for (InetSocketAddress address : this.getAllSocketAddresses()) {
-            Log.d(this, "try address: '" + address.getAddress​() + "', port: " + address.getPort());
+            Log.d(this, "try address: '" + address.getAddress() + "', port: " + address.getPort());
             socket = this.establishConnection(address, connectionTimeout);
             if (socket != null) {
                 return socket;

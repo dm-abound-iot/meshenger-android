@@ -63,7 +63,7 @@
             android:name=".QRScanActivity"
             android:screenOrientation="portrait" />
 
-        <service android:name=".MainService" android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".MainService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="true" />
 
         <activity
             android:name=".StartActivity"

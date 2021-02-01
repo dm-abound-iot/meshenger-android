@@ -26,8 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 
 
-public class AddressActivity extends MeshengerActivity implements ServiceConnection {
-    private MainService.MainBinder binder;
+public class AddressActivity extends MeshengerActivity {
     Spinner storedAddressSpinner;
     Spinner systemAddressSpinner;
     Button pickStoredAddressButton;
@@ -143,8 +142,8 @@ public class AddressActivity extends MeshengerActivity implements ServiceConnect
             for (AddressEntry ae : this.storedAddressList) {
                 addresses.add(ae.address);
             }
-            this.binder.getSettings().setAddresses(addresses);
-            this.binder.saveDatabase();
+            MainService.instance.getSettings().setAddresses(addresses);
+            MainService.instance.saveDatabase();
             Toast.makeText(this, R.string.done, Toast.LENGTH_SHORT).show();
         });
 
@@ -152,9 +151,16 @@ public class AddressActivity extends MeshengerActivity implements ServiceConnect
             finish();
         });
 
-        bindService();
-    }
+        // get from settings
+        for (String address : MainService.instance.getSettings().getAddresses()) {
+            this.storedAddressList.add(parseAddress(address));
+        }
 
+        updateSpinners();
+
+        //bindService();
+    }
+/*
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -183,7 +189,7 @@ public class AddressActivity extends MeshengerActivity implements ServiceConnect
     public void onServiceDisconnected(ComponentName componentName) {
         this.binder = null;
     }
-
+*/
     public class AddressListAdapter extends BaseAdapter {
         private final Activity context;
         private final int markColor;

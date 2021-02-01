@@ -10,9 +10,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 
-public class AboutActivity extends MeshengerActivity implements ServiceConnection {
+public class AboutActivity extends MeshengerActivity {
     private int versionClicked = 0;
-    private MainService.MainBinder binder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,23 +30,21 @@ public class AboutActivity extends MeshengerActivity implements ServiceConnectio
         });
 
         findViewById(R.id.versionTv).setOnClickListener(v -> {
-            if (binder != null) {
-                versionClicked += 1;
-                if (versionClicked < 4) {
-                    Toast.makeText(this, (4 - versionClicked) + " Clicks left for Development Mode", Toast.LENGTH_SHORT).show();
-                } else {
-                    if (!binder.getSettings().getDevelopmentMode()) {
-                        binder.getSettings().setDevelopmentMode(true);
-                        binder.saveDatabase();
-                    }
-                    Toast.makeText(this, "Development Mode Active", Toast.LENGTH_SHORT).show();
+            versionClicked += 1;
+            if (versionClicked < 4) {
+                Toast.makeText(this, (4 - versionClicked) + " Clicks left for Development Mode", Toast.LENGTH_SHORT).show();
+            } else {
+                if (!MainService.instance.getSettings().getDevelopmentMode()) {
+                    MainService.instance.getSettings().setDevelopmentMode(true);
+                    MainService.instance.saveDatabase();
                 }
+                Toast.makeText(this, "Development Mode Active", Toast.LENGTH_SHORT).show();
             }
         });
 
-        bindService(new Intent(this, MainService.class), this, Service.BIND_AUTO_CREATE);
+        //bindService(new Intent(this, MainService.class), this, Service.BIND_AUTO_CREATE);
     }
-
+/*
     @Override
     protected void onDestroy() {
         unbindService(this);
@@ -63,4 +60,5 @@ public class AboutActivity extends MeshengerActivity implements ServiceConnectio
     public void onServiceDisconnected(ComponentName componentName) {
         this.binder = null;
     }
+ */
 }

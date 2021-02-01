@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Binder;
@@ -38,56 +39,100 @@ import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
 
 
 public class MainService extends Service implements Runnable {
-    public static Database db = null;
+    private static final String TAG = "MainService";
+    public static MainService instance = null;
+    public static DirectRTCClient currentCall = null;
+
+    private Database database = null;
     private boolean first_start = false;
     private String database_path = "";
     private String database_password = "";
+    private ServerSocket server;
+    private volatile boolean run = true;
+    //private MainBinder mainBinder = new MainBinder(this);
+
+    private final IBinder mBinder = new LocalBinder();
 
     public static final int serverPort = 10001;
-    private ServerSocket server;
+    private static final int NOTIFICATION = 42;
 
-    private volatile boolean run = true;
-    private RTCCall currentCall = null;
-
-    public static DirectRTCClient currentCallInstance;
-
-    private ArrayList<CallEvent> events = null;
-
-    private MainBinder mainBinder = new MainBinder(this);
-
-    private int NOTIFICATION = 42;
+    /**
+     * Used to check whether the bound activity has really gone away and not unbound as part of an
+     * orientation change. We create a foreground service notification only if the former takes
+     * place.
+     */
+    private boolean mChangingConfiguration = false;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d(TAG, "onCreate");
 
-        this.database_path = this.getFilesDir() + "/database.bin";
-        this.events = new ArrayList<>();
+        this.instance = this;
+        database_path = this.getFilesDir() + "/database.bin";
 
         // handle incoming connections
         new Thread(this).start();
-
     }
 
-    private void loadDatabase() {
+    public void loadDatabase() {
         try {
-            if ((new File(this.database_path)).exists()) {
+            if ((new File(database_path)).exists()) {
                 // open existing database
-                this.db = Database.load(this.database_path, this.database_password);
-                this.first_start = false;
+                database = Database.load(database_path, database_password);
+                first_start = false;
             } else {
                 // create new database
-                this.db = new Database();
-                this.first_start = true;
+                database = new Database();
+                first_start = true;
             }
         } catch (Exception e) {
             // ignore
         }
     }
 
-    private void saveDatabase() {
+    public void replaceDatabase(Database database) {
+        if (database != null) {
+            if (this.database == null) {
+                this.database = database;
+            } else {
+                this.database = database;
+                saveDatabase();
+            }
+        }
+    }
+
+    public boolean isFirstStart() {
+        return first_start;
+    }
+
+    public String getDatabasePassword() {
+        return database_password;
+    }
+
+    public void setDatabasePassword(String password) {
+        database_password = password;
+    }
+
+    public Database getDatabase() {
+        return database;
+    }
+
+    public Settings getSettings() {
+        return database.getSettings();
+    }
+
+    public Contacts getContacts() {
+        return database.getContacts();
+    }
+
+    public Events getEvents() {
+        return database.getEvents();
+    }
+
+    public void saveDatabase() {
         try {
-            Database.store(MainService.this.database_path, MainService.this.db, MainService.this.database_password);
+            Database.store(database_path, database, database_password);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -96,27 +141,27 @@ public class MainService extends Service implements Runnable {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        this.run = false;
+        run = false;
 
         // The database might be null here if no correct
         // database password was supplied to open it.
 
-        if (this.db != null) {
+        if (database != null) {
             try {
-                Database.store(this.database_path, this.db, this.database_password);
+                Database.store(database_path, database, database_password);
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
 
         // shutdown listening socket and say goodbye
-        if (this.db != null && this.server != null && this.server.isBound() && !this.server.isClosed()) {
+        if (database != null && server != null && server.isBound() && !server.isClosed()) {
             try {
-                byte[] ownPublicKey = this.db.getSettings().getPublicKey();
-                byte[] ownSecretKey = this.db.getSettings().getSecretKey();
+                byte[] ownPublicKey = getSettings().getPublicKey();
+                byte[] ownSecretKey = getSettings().getSecretKey();
                 String message = "{\"action\": \"status_change\", \"status\", \"offline\"}";
 
-                for (Contact contact : this.db.getContacts()) {
+                for (Contact contact : getContacts().getContactList()) {
                     if (contact.getState() == Contact.State.OFFLINE) {
                         continue;
                     }
@@ -154,9 +199,9 @@ public class MainService extends Service implements Runnable {
             }
         }
 
-        if (this.db != null) {
+        if (database != null) {
             // zero keys from memory
-            this.db.onDestroy();
+            database.onDestroy();
         }
     }
 
@@ -208,10 +253,10 @@ public class MainService extends Service implements Runnable {
         if (intent == null || intent.getAction() == null) {
             // ignore
         } else if (intent.getAction().equals(START_FOREGROUND_ACTION)) {
-            log("Received Start Foreground Intent");
+            Log.d(TAG, "Received Start Foreground Intent");
             showNotification();
         } else if (intent.getAction().equals(STOP_FOREGROUND_ACTION)) {
-            log("Received Stop Foreground Intent");
+            Log.d(TAG, "Received Stop Foreground Intent");
             ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIFICATION);
             stopForeground(true);
             stopSelf();
@@ -219,15 +264,60 @@ public class MainService extends Service implements Runnable {
         return START_NOT_STICKY;
     }
 
+/*
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        mChangingConfiguration = true;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // Called when a client (MainActivity in case of this sample) comes to the foreground
+        // and binds with this service. The service should cease to be a foreground service
+        // when that happens.
+        Log.i(this, "in onBind()");
+        stopForeground(true);
+        mChangingConfiguration = false;
+        return mBinder;
+    }
+
+    @Override
+    public void onRebind(Intent intent) {
+        // Called when a client (MainActivity in case of this sample) returns to the foreground
+        // and binds once again with this service. The service should cease to be a foreground
+        // service when that happens.
+        Log.i(this, "in onRebind()");
+        stopForeground(true);
+        mChangingConfiguration = false;
+        super.onRebind(intent);
+    }
+
+    @Override
+    public boolean onUnbind(Intent intent) {
+        Log.i(this, "Last client unbound from service");
+
+        // Called when the last client (MainActivity in case of this sample) unbinds from this
+        // service. If this method is called due to a configuration change in MainActivity, we
+        // do nothing. Otherwise, we make this service a foreground service.
+        if (!mChangingConfiguration) { //} && Utils.requestingLocationUpdates(this)) {
+            Log.i(this, "Starting foreground service");
+
+            startForeground(NOTIFICATION_ID, getNotification());
+        }
+        return true; // Ensures onRebind() is called when a client re-binds.
+    }
+*/
+/*
     private void handleClient(MainBinder binder, Socket socket) {
         // just a precaution
-        if (this.db == null) {
+        if (this.database == null) {
             return;
         }
 
         byte[] clientPublicKey = new byte[Sodium.crypto_sign_publickeybytes()];
-        byte[] ownSecretKey = this.db.getSettings().getSecretKey();
-        byte[] ownPublicKey = this.db.getSettings().getPublicKey();
+        byte[] ownSecretKey = this.database.getSettings().getSecretKey();
+        byte[] ownPublicKey = this.database.getSettings().getPublicKey();
 
         try {
             PacketWriter pw = new PacketWriter(socket);
@@ -251,13 +341,13 @@ public class MainService extends Service implements Runnable {
 
                 if (contact == null) {
                     // search for contact identity
-                    for (Contact c : this.db.getContacts()) {
+                    for (Contact c : this.database.getContacts()) {
                         if (Arrays.equals(c.getPublicKey(), clientPublicKey)) {
                             contact = c;
                         }
                     }
 
-                    if (contact == null && this.db.getSettings().getBlockUnknown()) {
+                    if (contact == null && this.database.getSettings().getBlockUnknown()) {
                         if (this.currentCall != null) {
                             log("block unknown contact => decline");
                             this.currentCall.decline();
@@ -348,13 +438,13 @@ public class MainService extends Service implements Runnable {
         // zero out key
         Arrays.fill(clientPublicKey, (byte) 0);
     }
-
+*/
     // runs in a thread
     @Override
     public void run() {
         try {
             // wait until database is ready
-            while (this.db == null && this.run) {
+            while (this.database == null && this.run) {
                 try {
                     Thread.sleep(1000);
                 } catch (Exception e) {
@@ -363,14 +453,14 @@ public class MainService extends Service implements Runnable {
             }
 
             server = new ServerSocket(serverPort);
-            MainBinder binder = (MainBinder) onBind(null);
+            LocalBinder binder = (LocalBinder) onBind(null);
             //ExecutorService executor = Executors.newSingleThreadExecutor();
 
             while (this.run) {
                 try {
                     Socket socket = server.accept();
-                    if (this.currentCallInstance == null) {
-                        this.currentCallInstance = new DirectRTCClient(socket);
+                    if (this.currentCall == null) {
+                        this.currentCall = new DirectRTCClient(socket);
                         Intent intent = new Intent(this, CallActivity.class);
                         intent.setAction("ACTION_INCOMING_CALL");
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -394,6 +484,7 @@ public class MainService extends Service implements Runnable {
     /*
     * Allows communication between MainService and other objects
     */
+    /*
     static class MainBinder extends Binder {
         private MainService service;
 
@@ -414,7 +505,7 @@ public class MainService extends Service implements Runnable {
         }
 
         Contact getContactByPublicKey(byte[] pubKey) {
-            for (Contact contact : this.service.db.getContacts()) {
+            for (Contact contact : this.service.database.getContacts()) {
                 if (Arrays.equals(contact.getPublicKey(), pubKey)) {
                     return contact;
                 }
@@ -423,7 +514,7 @@ public class MainService extends Service implements Runnable {
         }
 
         Contact getContactByName(String name) {
-            for (Contact contact : this.service.db.getContacts()) {
+            for (Contact contact : this.service.database.getContacts()) {
                 if (contact.getName().equals(name)) {
                     return contact;
                 }
@@ -432,13 +523,13 @@ public class MainService extends Service implements Runnable {
         }
 
         void addContact(Contact contact) {
-            this.service.db.addContact(contact);
+            this.service.database.addContact(contact);
             saveDatabase();
             LocalBroadcastManager.getInstance(this.service).sendBroadcast(new Intent("refresh_contact_list"));
         }
 
         void deleteContact(byte[] pubKey) {
-            this.service.db.deleteContact(pubKey);
+            this.service.database.deleteContact(pubKey);
             saveDatabase();
             LocalBroadcastManager.getInstance(this.service).sendBroadcast(new Intent("refresh_contact_list"));
         }
@@ -460,26 +551,26 @@ public class MainService extends Service implements Runnable {
         }
 
         Database getDatabase() {
-            return this.service.db;
+            return this.service.database;
         }
 
         void loadDatabase() {
             this.service.loadDatabase();
         }
 
-        void replaceDatabase(Database db) {
-            if (db != null) {
-                if (this.service.db == null) {
-                    this.service.db = db;
+        void replaceDatabase(Database database) {
+            if (database != null) {
+                if (this.service.database == null) {
+                    this.service.database = database;
                 } else {
-                    this.service.db = db;
+                    this.service.database = database;
                     saveDatabase();
                 }
             }
         }
 
         void pingContacts() {
-            Log.d(this, "pingContacts");
+            Log.d(TAG, "pingContacts");
             new Thread(new PingRunnable(
                 this,
                 getContactsCopy(),
@@ -493,12 +584,12 @@ public class MainService extends Service implements Runnable {
         }
 
         Settings getSettings() {
-            return this.service.db.getSettings();
+            return this.service.database.getSettings();
         }
 
         // return a cloned list
         List<Contact> getContactsCopy() {
-           return new ArrayList<>(this.service.db.getContacts());
+           return new ArrayList<>(this.service.database.getContacts());
         }
 
         void addCallEvent(Contact contact, CallEvent.Type type) {
@@ -521,7 +612,8 @@ public class MainService extends Service implements Runnable {
             LocalBroadcastManager.getInstance(this.service).sendBroadcast(new Intent("refresh_event_list"));
         }
     }
-
+*/
+    /*
     static class PingRunnable implements Runnable {
         private List<Contact> contacts;
         byte[] ownPublicKey;
@@ -537,7 +629,7 @@ public class MainService extends Service implements Runnable {
 
         @Override
         public void run() {
-            /* // otherwise we trigger calls
+            // otherwise we trigger calls
             for (Contact contact : contacts) {
                 Socket socket = null;
                 byte[] publicKey = contact.getPublicKey();
@@ -598,21 +690,47 @@ public class MainService extends Service implements Runnable {
 
             log("send refresh_contact_list");
             LocalBroadcastManager.getInstance(this.binder.getContext()).sendBroadcast(new Intent("refresh_contact_list"));
-            */
         }
 
         private void log(String data) {
-            Log.d(this, data);
+            Log.d(TAG, data);
         }
     }
-
+*/
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
-        return mainBinder;
+        Log.d(TAG, "onBind");
+        return mBinder;
     }
 
-    private void log(String data) {
-        Log.d(this, data);
+    /**
+     * Class used for the client Binder.  Since this service runs in the same process as its
+     * clients, we don't need to deal with IPC.
+     */
+    public class LocalBinder extends Binder {
+        MainService getService() {
+            return MainService.this;
+        }
     }
+
+    /**
+     * Returns true if this is a foreground service.
+     *
+     * @param context The {@link Context}.
+     */
+    /*
+    public boolean serviceIsRunningInForeground(Context context) {
+        ActivityManager manager = (ActivityManager) context.getSystemService(
+                Context.ACTIVITY_SERVICE);
+        for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(
+                Integer.MAX_VALUE)) {
+            if (getClass().getName().equals(service.service.getClassName())) {
+                if (service.foreground) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }*/
 }

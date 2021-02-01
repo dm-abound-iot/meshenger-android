@@ -16,13 +16,13 @@ import java.util.Arrays;
 import java.util.List;
 
 
-class EventListAdapter extends ArrayAdapter<CallEvent> {
+class EventListAdapter extends ArrayAdapter<Event> {
     private LayoutInflater inflater;
-    private List<CallEvent> events;
+    private List<Event> events;
     private List<Contact> contacts;
     private Context context;
 
-    public EventListAdapter(@NonNull Context context, int resource, List<CallEvent> events, List<Contact> contacts) {
+    public EventListAdapter(@NonNull Context context, int resource, List<Event> events, List<Contact> contacts) {
         super(context, resource, events);
 
         this.events = events;
@@ -32,7 +32,7 @@ class EventListAdapter extends ArrayAdapter<CallEvent> {
         inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
     }
 
-    public void update(List<CallEvent> events, List<Contact> contacts) {
+    public void update(List<Event> events, List<Contact> contacts) {
         this.events = events;
         this.contacts = contacts;
     }
@@ -43,7 +43,7 @@ class EventListAdapter extends ArrayAdapter<CallEvent> {
     }
 
     @Override
-    public CallEvent getItem(int position) {
+    public Event getItem(int position) {
         return events.get(position);
     }
 
@@ -56,7 +56,7 @@ class EventListAdapter extends ArrayAdapter<CallEvent> {
     @Override
     public View getView(int position, @Nullable View view, @NonNull ViewGroup parent) {
         // show list in reverse, latest element first
-        CallEvent event = this.events.get(this.events.size() - position - 1);
+        Event event = this.events.get(this.events.size() - position - 1);
 
         if (view == null) {
             view = inflater.inflate(R.layout.item_event, null);
@@ -116,9 +116,5 @@ class EventListAdapter extends ArrayAdapter<CallEvent> {
             address_tv.setText("");
         }
         return view;
-    }
-
-    private static void log(String s) {
-        Log.d(EventListAdapter.class.getSimpleName(), s);
     }
 }

@@ -21,7 +21,7 @@ import android.widget.Toast;
 import java.io.File;
 
 
-public class BackupActivity extends MeshengerActivity implements ServiceConnection,
+public class BackupActivity extends MeshengerActivity implements
         SimpleFilePickerDialog.InteractionListenerString {
     private static final String SELECT_PATH_REQUEST = "SELECT_PATH_REQUEST";
     private static final int REQUEST_PERMISSION = 0x01;
@@ -31,7 +31,6 @@ public class BackupActivity extends MeshengerActivity implements ServiceConnecti
     private ImageButton selectButton;
     private TextView pathEditText;
     private TextView passwordEditText;
-    private MainService.MainBinder binder;
 
     private void showErrorMessage(String title, String message) {
         builder.setTitle(title);
@@ -45,10 +44,10 @@ public class BackupActivity extends MeshengerActivity implements ServiceConnecti
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_backup);
 
-        bindService();
+        //bindService();
         initViews();
     }
-
+/*
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -73,12 +72,8 @@ public class BackupActivity extends MeshengerActivity implements ServiceConnecti
     public void onServiceDisconnected(ComponentName componentName) {
         this.binder = null;
     }
-
+*/
     private void initViews() {
-        if (this.binder == null) {
-            return;
-        }
-
         builder = new AlertDialog.Builder(this);
         importButton = findViewById(R.id.ImportButton);
         exportButton = findViewById(R.id.ExportButton);
@@ -133,7 +128,7 @@ public class BackupActivity extends MeshengerActivity implements ServiceConnecti
         }
 
         try {
-            Database db = this.binder.getDatabase();
+            Database db = MainService.instance.getDatabase();
             Database.store(path, db, password);
             Toast.makeText(this, R.string.done, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
@@ -162,7 +157,7 @@ public class BackupActivity extends MeshengerActivity implements ServiceConnecti
 
         try {
             Database db = Database.load(path, password);
-            this.binder.replaceDatabase(db);
+            MainService.instance.replaceDatabase(db);
             Toast.makeText(this, R.string.done, Toast.LENGTH_SHORT).show();
         } catch (Exception e) {
             showErrorMessage(getResources().getString(R.string.error), e.toString());

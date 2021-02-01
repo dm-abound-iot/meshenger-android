@@ -31,9 +31,8 @@ import java.util.Collections;
 import java.util.List;
 
 
-public class QRScanActivity extends MeshengerActivity implements BarcodeCallback, ServiceConnection {
+public class QRScanActivity extends MeshengerActivity implements BarcodeCallback {
     private DecoratedBarcodeView barcodeView;
-    private MainService.MainBinder binder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,8 +40,6 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
 
         setContentView(R.layout.activity_qrscan);
         setTitle(getString(R.string.scan_invited));
-
-        bindService(new Intent(this, MainService.class), this, Service.BIND_AUTO_CREATE);
 
         if (!Utils.hasCameraPermission(this)) {
             Utils.requestCameraPermission(this, 1);
@@ -58,6 +55,10 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         findViewById(R.id.fabManualInput).setOnClickListener(view -> {
             startManualInput();
         });
+
+        if (Utils.hasCameraPermission(this)) {
+            initCamera();
+        }
     }
 
     private void addContact(String data) throws JSONException {
@@ -69,8 +70,9 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         }
 
         // lookup existing contacts by key and name
-        Contact existing_pubkey_contact = binder.getContactByPublicKey(new_contact.getPublicKey());
-        Contact existing_name_contact = binder.getContactByName(new_contact.getName());
+        Contacts contacts = MainService.instance.getContacts();
+        Contact existing_pubkey_contact = contacts.getContactByPublicKey(new_contact.getPublicKey());
+        Contact existing_name_contact = contacts.getContactByName(new_contact.getName());
 
         if (existing_pubkey_contact != null) {
             // contact with that public key exists
@@ -80,7 +82,7 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
             showNameConflictDialog(new_contact, existing_name_contact);
         } else {
             // no conflict
-            binder.addContact(new_contact);
+            contacts.addContact(new_contact);
             finish();
         }
     }
@@ -96,8 +98,9 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         nameTextView.setText(other_contact.getName());
 
         replaceButton.setOnClickListener((View v) -> {
-            QRScanActivity.this.binder.deleteContact(other_contact.getPublicKey());
-            QRScanActivity.this.binder.addContact(new_contact);
+            Contacts contacts = MainService.instance.getContacts();
+            contacts.deleteContact(other_contact.getPublicKey());
+            contacts.addContact(new_contact);
 
             // done
             Toast.makeText(QRScanActivity.this, R.string.done, Toast.LENGTH_SHORT).show();
@@ -126,8 +129,9 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         nameEditText.setText(other_contact.getName());
 
         replaceButton.setOnClickListener((View v) -> {
-            QRScanActivity.this.binder.deleteContact(other_contact.getPublicKey());
-            QRScanActivity.this.binder.addContact(new_contact);
+            Contacts contacts = MainService.instance.getContacts();
+            contacts.deleteContact(other_contact.getPublicKey());
+            contacts.addContact(new_contact);
 
             // done
             Toast.makeText(QRScanActivity.this, R.string.done, Toast.LENGTH_SHORT).show();
@@ -138,20 +142,21 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
 
         renameButton.setOnClickListener((View v) -> {
             String name = nameEditText.getText().toString();
+            Contacts contacts = MainService.instance.getContacts();
 
             if (name.isEmpty()) {
                 Toast.makeText(this, R.string.contact_name_empty, Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            if (QRScanActivity.this.binder.getContactByName(name) != null) {
+            if (contacts.getContactByName(name) != null) {
                 Toast.makeText(this, R.string.contact_name_exists, Toast.LENGTH_SHORT).show();
                 return;
             }
 
             // rename
             new_contact.setName(name);
-            QRScanActivity.this.binder.addContact(new_contact);
+            contacts.addContact(new_contact);
 
             // done
             Toast.makeText(QRScanActivity.this, R.string.done, Toast.LENGTH_SHORT).show();
@@ -225,7 +230,7 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
     protected void onResume() {
         super.onResume();
 
-        if (barcodeView != null && binder != null) {
+        if (barcodeView != null) {
             barcodeView.resume();
         }
     }
@@ -234,7 +239,7 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
     protected void onPause() {
         super.onPause();
 
-        if (barcodeView != null && binder != null) {
+        if (barcodeView != null) {
             barcodeView.pause();
         }
     }
@@ -242,7 +247,6 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unbindService(this);
     }
 
     private void initCamera() {
@@ -252,23 +256,5 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         barcodeView.getBarcodeView().setDecoderFactory(new DefaultDecoderFactory(formats));
         barcodeView.decodeContinuous(this);
         barcodeView.resume();
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        this.binder = (MainService.MainBinder) iBinder;
-
-        if (Utils.hasCameraPermission(this)) {
-            initCamera();
-        }
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-        binder = null;
-    }
-
-    private void log(String s) {
-        Log.d(this, s);
     }
 }

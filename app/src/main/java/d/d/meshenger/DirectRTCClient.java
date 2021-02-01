@@ -88,6 +88,12 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
 
     //Log.d(TAG, "TCP connection established.");
 
+    // contact is only set for outgoing call
+    if (contact != null && contact.getAddresses().isEmpty()) {
+      reportError("No addresses set for contact.");
+      return;
+    }
+
     synchronized (socketLock) {
       if (!isServer) {
         Log.d(TAG, "Create outgoing socket contact.createSocket() (client)");

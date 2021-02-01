@@ -12,60 +12,41 @@ import java.util.List;
 
 
 class Database {
-    private Settings settings;
-    private ArrayList<Contact> contacts;
+    private static final String TAG = "Database";
     static String version = "3.1.0"; // current version
+    private Settings settings;
+    private Contacts contacts;
+    private Events events;
 
     Database() {
-        this.contacts = new ArrayList<>();
+        this.contacts = new Contacts();
         this.settings = new Settings();
+        this.events = new Events();
     }
 
     public Settings getSettings() {
         return settings;
     }
 
-    public List<Contact> getContacts() {
+    public Contacts getContacts() {
         return contacts;
     }
 
-    public void addContact(Contact contact) {
-        int idx = findContact(contact.getPublicKey());
-        if (idx >= 0) {
-            // contact exists - replace
-            this.contacts.set(idx, contact);
-        } else {
-            this.contacts.add(contact);
-        }
-    }
-
-    public void deleteContact(byte[] publicKey) {
-        int idx = this.findContact(publicKey);
-        if (idx >= 0) {
-            this.contacts.remove(idx);
-        }
-    }
-
-    public int findContact(byte[] publicKey) {
-        for (int i = 0; i < this.contacts.size(); i += 1) {
-            if (Arrays.equals(this.contacts.get(i).getPublicKey(), publicKey)) {
-                return i;
-            }
-        }
-        return -1;
+    public Events getEvents() {
+        return events;
     }
 
     public void onDestroy() {
         // zero keys from memory
-        if (this.settings.getSecretKey() != null) {
-            Arrays.fill(this.settings.getSecretKey(), (byte) 0);
+        if (settings.getSecretKey() != null) {
+            Arrays.fill(settings.getSecretKey(), (byte) 0);
         }
 
-        if (this.settings.getPublicKey() != null) {
-            Arrays.fill(this.settings.getPublicKey(), (byte) 0);
+        if (settings.getPublicKey() != null) {
+            Arrays.fill(settings.getPublicKey(), (byte) 0);
         }
 
-        for (Contact contact : this.contacts) {
+        for (Contact contact : contacts.getContactList()) {
             if (contact.getPublicKey() != null) {
                 Arrays.fill(contact.getPublicKey(), (byte) 0);
             }
@@ -81,7 +62,7 @@ class Database {
             data = Crypto.decryptDatabase(data, password.getBytes());
 
             if (data == null) {
-                throw new IOException("wrong database password.");
+                throw new IOException("Wrong database password.");
             }
         }
 
@@ -93,7 +74,7 @@ class Database {
         Database db = Database.fromJSON(obj);
 
         if (upgraded) {
-            log("store updated database");
+            Log.d(TAG, "Store updated database.");
             Database.store(path, db, password);
         }
 
@@ -118,7 +99,7 @@ class Database {
             return false;
         }
 
-        log("upgrade database from " + from + " to " + to);
+        Log.d(TAG, "upgrade database from " + from + " to " + to);
 
         // 2.0.0 => 2.1.0
         if (from.equals("2.0.0")) {
@@ -160,6 +141,11 @@ class Database {
         // 3.0.3 => 3.1.0
         if (from.equals("3.0.3")) {
             obj.getJSONObject("settings").remove("language");
+            obj.getJSONObject("settings").put("send_video", true);
+            obj.getJSONObject("settings").put("receive_video", true);
+            obj.getJSONObject("settings").put("send_audio", true);
+            obj.getJSONObject("settings").put("receive_audio", true);
+            obj.getJSONObject("settings").put("auto_accept_call", false);
             from = "3.1.0";
         }
 
@@ -174,7 +160,7 @@ class Database {
         obj.put("settings", Settings.exportJSON(db.settings));
 
         JSONArray contacts = new JSONArray();
-        for (Contact contact : db.contacts) {
+        for (Contact contact : db.getContacts().getContactList()) {
             contacts.put(Contact.exportJSON(contact, true));
         }
         obj.put("contacts", contacts);
@@ -191,7 +177,7 @@ class Database {
         // import contacts
         JSONArray array = obj.getJSONArray("contacts");
         for (int i = 0; i < array.length(); i += 1) {
-            db.contacts.add(
+            db.getContacts().addContact(
                 Contact.importJSON(array.getJSONObject(i), true)
             );
         }
@@ -201,9 +187,5 @@ class Database {
         db.settings = Settings.importJSON(settings);
 
         return db;
-    }
-
-    private static void log(String s) {
-        Log.d("Database", s);
     }
 }

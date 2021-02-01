@@ -41,7 +41,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
         eventListView = view.findViewById(R.id.eventList);
         fabDelete = view.findViewById(R.id.fabDelete);
         fabDelete.setOnClickListener(v -> {
-            mainActivity.binder.clearEvents();
+            MainService.instance.getEvents().clear();
             refreshEventList();
         });
 
@@ -55,30 +55,30 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
     }
 
     void refreshEventList() {
-        log("refreshEventList");
+        Log.d(this, "refreshEventList");
 
-        if (this.mainActivity == null || this.mainActivity.binder == null) {
-            log("refreshEventList early return");
+        if (this.mainActivity == null) {
+            Log.d(this, "refreshEventList early return");
             return;
         }
 
-        List<CallEvent> events = EventListFragment.this.mainActivity.binder.getEventsCopy();
-        List<Contact> contacts = EventListFragment.this.mainActivity.binder.getContactsCopy();
-
         new Handler(getMainLooper()).post(() -> {
-            log("refreshEventList update: " + events.size());
+            List<Event> events = MainService.instance.getEvents().getEventListCopy();
+            List<Contact> contacts = MainService.instance.getContacts().getContactListCopy(); // EventListFragment.this.mainActivity.binder.getContactsCopy();
+
+            Log.d(this, "refreshEventList update: " + events.size());
             eventListAdapter.update(events, contacts);
             eventListAdapter.notifyDataSetChanged();
             eventListView.setAdapter(eventListAdapter);
 
             eventListView.setOnItemLongClickListener((AdapterView<?> adapterView, View view, int i, long l) -> {
-                CallEvent event = events.get(i);
+                Event event = events.get(i);
                 PopupMenu menu = new PopupMenu(EventListFragment.this.mainActivity, view);
                 Resources res = getResources();
                 String add = res.getString(R.string.add);
                 String block = res.getString(R.string.block);
                 String unblock = res.getString(R.string.unblock);
-                Contact contact = EventListFragment.this.mainActivity.binder.getContactByPublicKey(event.pubKey);
+                Contact contact = MainService.instance.getContacts().getContactByPublicKey(event.pubKey); // EventListFragment.this.mainActivity.binder.getContactByPublicKey(event.pubKey);
 
                 // allow to add unknown caller
                 if (contact == null) {
@@ -112,17 +112,17 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
         });
     }
 
-    private void setBlocked(CallEvent event, boolean blocked) {
-        Contact contact = EventListFragment.this.mainActivity.binder.getContactByPublicKey(event.pubKey);
+    private void setBlocked(Event event, boolean blocked) {
+        Contact contact = MainService.instance.getContacts().getContactByPublicKey(event.pubKey);
         if (contact != null) {
             contact.setBlocked(blocked);
-            mainActivity.binder.saveDatabase();
+            MainService.instance.saveDatabase();
         } else {
             // unknown contact
         }
     }
 
-    private void showAddDialog(CallEvent event) {
+    private void showAddDialog(Event event) {
         log("showAddDialog");
 
         Dialog dialog = new Dialog(this.mainActivity);
@@ -140,13 +140,13 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
                 return;
             }
 
-            if (EventListFragment.this.mainActivity.binder.getContactByName(name) != null) {
+            if (MainService.instance.getContacts().getContactByName(name) != null) {
                 Toast.makeText(this.mainActivity, R.string.contact_name_exists, Toast.LENGTH_LONG).show();
                 return;
             }
 
             String address = Utils.getGeneralizedAddress(event.address);
-            EventListFragment.this.mainActivity.binder.addContact(
+            MainService.instance.getContacts().addContact(
                 new Contact(name, event.pubKey, Arrays.asList(address))
             );
 
@@ -168,7 +168,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
         log("onItemClick");
-        CallEvent event = this.eventListAdapter.getItem(i);
+        Event event = this.eventListAdapter.getItem(i);
 
         String address = Utils.getGeneralizedAddress(event.address);
         Contact contact = new Contact("", event.pubKey, Arrays.asList(address));
