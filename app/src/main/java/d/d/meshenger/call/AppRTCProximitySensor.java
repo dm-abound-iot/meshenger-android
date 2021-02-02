@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.content.Context;
 import android.hardware.Sensor;
@@ -20,7 +20,6 @@ import android.support.annotation.Nullable;
 import android.util.Log;
 import org.webrtc.ThreadUtils;
 
-import d.d.meshenger.AppRTCUtils;
 /**
  * AppRTCProximitySensor manages functions related to the proximity sensor in
  * the AppRTC demo.

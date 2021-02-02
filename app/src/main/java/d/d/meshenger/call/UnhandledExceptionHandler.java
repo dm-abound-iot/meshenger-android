@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.app.Activity;
 import android.app.AlertDialog;

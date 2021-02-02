@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.content.Context;
 import android.os.Environment;
@@ -233,7 +233,7 @@ public class PeerConnectionClient {
     public final boolean videoFlexfecEnabled;
     public final int audioStartBitrate;
     public final String audioCodec;
-    public final boolean noAudioProcessing;
+    public final boolean audioProcessing;
     //public final boolean aecDump;
     //public final boolean saveInputAudioToFile;
     public final boolean useOpenSLES;
@@ -250,13 +250,22 @@ public class PeerConnectionClient {
         boolean receiveAudio,
         boolean sendAudio,
 
-
-        boolean videoCallEnabled, /*boolean loopback, boolean tracing, */
-        int videoWidth, int videoHeight, int videoFps, int videoMaxBitrate, String videoCodec,
-        boolean videoCodecHwAcceleration, boolean videoFlexfecEnabled, int audioStartBitrate,
-        String audioCodec, boolean noAudioProcessing, /*boolean aecDump, boolean saveInputAudioToFile, */
-        boolean useOpenSLES, boolean disableBuiltInAEC, boolean disableBuiltInAGC,
-        boolean disableBuiltInNS, boolean disableWebRtcAGCAndHPF, /*boolean enableRtcEventLog,*/
+        boolean videoCallEnabled,
+        int videoWidth,
+        int videoHeight,
+        int videoFps,
+        int videoMaxBitrate,
+        String videoCodec,
+        boolean videoCodecHwAcceleration,
+        boolean videoFlexfecEnabled,
+        int audioStartBitrate,
+        String audioCodec,
+        boolean audioProcessing,
+        boolean useOpenSLES,
+        boolean disableBuiltInAEC,
+        boolean disableBuiltInAGC,
+        boolean disableBuiltInNS,
+        boolean disableWebRtcAGCAndHPF,
         DataChannelParameters dataChannelParameters) {
 
       this.receiveVideo = receiveVideo;
@@ -264,10 +273,9 @@ public class PeerConnectionClient {
       this.receiveAudio = receiveAudio;
       this.sendAudio = sendAudio;
 
+      // TODO: replace this one!
       this.videoCallEnabled = videoCallEnabled;
 
-      //this.loopback = loopback;
-      //this.tracing = tracing;
       this.videoWidth = videoWidth;
       this.videoHeight = videoHeight;
       this.videoFps = videoFps;
@@ -277,15 +285,12 @@ public class PeerConnectionClient {
       this.videoCodecHwAcceleration = videoCodecHwAcceleration;
       this.audioStartBitrate = audioStartBitrate;
       this.audioCodec = audioCodec;
-      this.noAudioProcessing = noAudioProcessing;
-      //this.aecDump = aecDump;
-      //this.saveInputAudioToFile = saveInputAudioToFile;
+      this.audioProcessing = audioProcessing;
       this.useOpenSLES = useOpenSLES;
       this.disableBuiltInAEC = disableBuiltInAEC;
       this.disableBuiltInAGC = disableBuiltInAGC;
       this.disableBuiltInNS = disableBuiltInNS;
       this.disableWebRtcAGCAndHPF = disableWebRtcAGCAndHPF;
-      //this.enableRtcEventLog = enableRtcEventLog;
       this.dataChannelParameters = dataChannelParameters;
     }
 
@@ -297,8 +302,6 @@ public class PeerConnectionClient {
         + "sendAudio" + sendAudio + "\n"
 
         + "videoCallEnabled: " + videoCallEnabled + "\n"
-        //+ "loopback: " + loopback + "\n"
-        //+ "tracing: " + tracing + "\n"
         + "videoWidth: " + videoWidth + "\n"
         + "videoHeight: " + videoHeight + "\n"
         + "videoFps: " + videoFps + "\n"
@@ -308,15 +311,12 @@ public class PeerConnectionClient {
         + "videoCodecHwAcceleration: " + videoCodecHwAcceleration + "\n"
         + "audioStartBitrate: " + audioStartBitrate + "\n"
         + "audioCodec: " + audioCodec + "\n"
-        + "noAudioProcessing: " + noAudioProcessing + "\n"
-        //+ "aecDump: " + aecDump + "\n"
-        //+ "saveInputAudioToFile: " + saveInputAudioToFile + "\n"
+        + "audioProcessing: " + audioProcessing + "\n"
         + "useOpenSLES: " + useOpenSLES + "\n"
         + "disableBuiltInAEC: " + disableBuiltInAEC + "\n"
         + "disableBuiltInAGC: " + disableBuiltInAGC + "\n"
         + "disableBuiltInNS: " + disableBuiltInNS + "\n"
         + "disableWebRtcAGCAndHPF: " + disableWebRtcAGCAndHPF + "\n"
-        //+ "enableRtcEventLog: " + enableRtcEventLog + "\n"
         + "dataChannelParameters: " + dataChannelParameters);
     }
   }
@@ -625,7 +625,7 @@ public class PeerConnectionClient {
     // Create audio constraints.
     audioConstraints = new MediaConstraints();
     // added for audio performance measurements
-    if (peerConnectionParameters.noAudioProcessing) {
+    if (!peerConnectionParameters.audioProcessing) {
       Log.d(TAG, "Disabling audio processing");
       audioConstraints.mandatory.add(
           new MediaConstraints.KeyValuePair(AUDIO_ECHO_CANCELLATION_CONSTRAINT, "false"));

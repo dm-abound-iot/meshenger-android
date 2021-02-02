@@ -23,6 +23,7 @@ import java.io.File;
 
 public class BackupActivity extends MeshengerActivity implements
         SimpleFilePickerDialog.InteractionListenerString {
+    private static final String TAG = "BackupActivity";
     private static final String SELECT_PATH_REQUEST = "SELECT_PATH_REQUEST";
     private static final int REQUEST_PERMISSION = 0x01;
     private AlertDialog.Builder builder;
@@ -204,9 +205,5 @@ public class BackupActivity extends MeshengerActivity implements
                 }
                 break;
         }
-    }
-
-    private void log(String s) {
-        Log.d(this, s);
     }
 }

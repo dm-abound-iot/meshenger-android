@@ -27,6 +27,7 @@ import java.util.List;
 
 
 public class AddressActivity extends MeshengerActivity {
+    private static final String TAG = "AddressActivity";
     Spinner storedAddressSpinner;
     Spinner systemAddressSpinner;
     Button pickStoredAddressButton;
@@ -344,14 +345,5 @@ public class AddressActivity extends MeshengerActivity {
             // domain
             return new AddressEntry(address, "", false);
         }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-    }
-
-    private void log(String s) {
-        Log.d(this, s);
     }
 }

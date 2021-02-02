@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -25,7 +25,6 @@ import android.util.Log;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-//import d.d.meshenger.AppRTCUtils;
 import org.webrtc.ThreadUtils;
 
 /**
@@ -114,7 +113,7 @@ public class AppRTCAudioManager {
    * e.g. from "NEAR to FAR" or from "FAR to NEAR".
    */
   private void onProximitySensorChangedState() {
-    if (!useSpeakerphone.equals(SPEAKERPHONE_AUTO)) {
+    if (!useSpeakerphone.equals("auto")) {
       return;
     }
 
@@ -157,20 +156,21 @@ public class AppRTCAudioManager {
   }
 
   /** Construction. */
-  static AppRTCAudioManager create(Context context) {
-    return new AppRTCAudioManager(context);
+  static AppRTCAudioManager create(Context context, String useSpeakerphone) {
+    return new AppRTCAudioManager(context, useSpeakerphone);
   }
 
-  private AppRTCAudioManager(Context context) {
+  private AppRTCAudioManager(Context context, String useSpeakerphone_) {
     Log.d(TAG, "ctor");
     ThreadUtils.checkIsOnMainThread();
     apprtcContext = context;
+    useSpeakerphone = useSpeakerphone_;
     audioManager = ((AudioManager) context.getSystemService(Context.AUDIO_SERVICE));
     bluetoothManager = AppRTCBluetoothManager.create(context, this);
     wiredHeadsetReceiver = new WiredHeadsetReceiver();
     amState = AudioManagerState.UNINITIALIZED;
 
-    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
+    //SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context);
     /*
     <item>Auto (proximity sensor)</item>
         <item>Enabled</item>
@@ -182,7 +182,7 @@ public class AppRTCAudioManager {
         <item>true</item>
         <item>false</item>
     */
-    useSpeakerphone = "auto"; // sharedPreferences.getString(context.getString(R.string.pref_speakerphone_key), "auto");
+    //useSpeakerphone = "auto"; // sharedPreferences.getString(context.getString(R.string.pref_speakerphone_key), "auto");
     Log.d(TAG, "useSpeakerphone: " + useSpeakerphone);
     if (useSpeakerphone.equals(SPEAKERPHONE_FALSE)) {
       defaultAudioDevice = AudioDevice.EARPIECE;

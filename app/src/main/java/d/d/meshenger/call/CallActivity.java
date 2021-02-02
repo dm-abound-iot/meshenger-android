@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.annotation.TargetApi;
 import android.app.Activity;
@@ -43,13 +43,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import d.d.meshenger.AppRTCAudioManager.AudioDevice;
-import d.d.meshenger.AppRTCAudioManager.AudioManagerEvents;
+import d.d.meshenger.call.AppRTCAudioManager.AudioDevice;
+import d.d.meshenger.call.AppRTCAudioManager.AudioManagerEvents;
 //import d.d.meshenger.AppRTCClient.RoomConnectionParameters;
-import d.d.meshenger.DirectRTCClient;
-import d.d.meshenger.AppRTCClient.SignalingParameters;
-import d.d.meshenger.PeerConnectionClient.DataChannelParameters;
-import d.d.meshenger.PeerConnectionClient.PeerConnectionParameters;
+import d.d.meshenger.call.DirectRTCClient;
+import d.d.meshenger.call.AppRTCClient.SignalingParameters;
+import d.d.meshenger.call.PeerConnectionClient.DataChannelParameters;
+import d.d.meshenger.call.PeerConnectionClient.PeerConnectionParameters;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
 import org.webrtc.CameraEnumerator;
@@ -67,6 +67,10 @@ import org.webrtc.VideoCapturer;
 import org.webrtc.VideoFileRenderer;
 import org.webrtc.VideoFrame;
 import org.webrtc.VideoSink;
+
+import d.d.meshenger.MainService;
+import d.d.meshenger.Settings;
+import d.d.meshenger.R;
 
 /**
  * Activity for peer connection call setup, call waiting
@@ -285,12 +289,12 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
       videoHeight,
       0, // VIDEO_FPS
       0, // VIDEO_BITRATE
-      "VP8", // VIDEOCODEC
+      settings.getVideoCodec(),
       true, // HWCODEC_ENABLED
       false, // FLEXFEC_ENABLED
       0, // AUDIO_BITRATE
-      "OPUS", // AUDIOCODEC
-      false, // NOAUDIOPROCESSING_ENABLED
+      settings.getAudioCodec(),
+      settings.getAudioProcessing(), // NOAUDIOPROCESSING_ENABLED
       false, // OPENSLES_ENABLED
       false, // DISABLE_BUILT_IN_AEC
       false, // DISABLE_BUILT_IN_AGC
@@ -531,18 +535,21 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   }
 
   @Override
+  public void onVideoMirrorSwitch(boolean mirror) {
+    fullscreenRenderer.setMirror(mirror); //!fullscreenRenderer.getMirror());
+  }
+
+  @Override
   public void onVideoScalingSwitch(ScalingType scalingType) {
     fullscreenRenderer.setScalingType(scalingType);
   }
 
-/*
   @Override
   public void onCaptureFormatChange(int width, int height, int framerate) {
     if (peerConnectionClient != null) {
       peerConnectionClient.changeCaptureFormat(width, height, framerate);
     }
   }
-*/
 
   @Override
   public boolean onToggleMic() {
@@ -588,7 +595,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
 
     // Create and audio manager that will take care of audio routing,
     // audio modes, audio device enumeration etc.
-    audioManager = AppRTCAudioManager.create(getApplicationContext());
+    audioManager = AppRTCAudioManager.create(getApplicationContext(), MainService.instance.getSettings().getSpeakerphone());
     // Store existing audio settings and change audio mode to
     // MODE_IN_COMMUNICATION for best possible VoIP performance.
     Log.d(TAG, "Starting the audio manager...");

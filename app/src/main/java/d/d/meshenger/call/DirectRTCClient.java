@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -32,6 +32,9 @@ import org.json.JSONObject;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.PeerConnection;
+import d.d.meshenger.Contact;
+import d.d.meshenger.Settings;
+import d.d.meshenger.R;
 /**
  * Implementation of AppRTCClient that uses direct TCP connection as the signaling channel.
  * This eliminates the need for an external server. This class does not support loopback

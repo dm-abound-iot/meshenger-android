@@ -17,6 +17,7 @@ import java.util.List;
 
 
 class ContactListAdapter extends ArrayAdapter<Contact> {
+    private static final String TAG = "ContactListAdapter";
     private List<Contact> contacts;
     private Context context;
 
@@ -56,7 +57,6 @@ class ContactListAdapter extends ArrayAdapter<Contact> {
             Bitmap bitmap = Bitmap.createBitmap(200, 200, Bitmap.Config.ARGB_8888);
             Canvas canvas = new Canvas(bitmap);
             Paint p = new Paint();
-
 
             switch (contact.getState()) {
                 case ONLINE:
@@ -103,9 +103,5 @@ class ContactListAdapter extends ArrayAdapter<Contact> {
         }
 */
         return convertView;
-    }
-
-    private void log(String s) {
-        Log.d(this, s);
     }
 }

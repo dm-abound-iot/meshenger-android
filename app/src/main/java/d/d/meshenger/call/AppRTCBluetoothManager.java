@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Set;
 import org.webrtc.ThreadUtils;
 
-import d.d.meshenger.AppRTCUtils;
 /**
  * AppRTCProximitySensor manages functions related to Bluetoth devices in the
  * AppRTC demo.

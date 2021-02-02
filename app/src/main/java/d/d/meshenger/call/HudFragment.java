@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.app.Fragment;
 import android.os.Bundle;
@@ -23,6 +23,7 @@ import org.webrtc.StatsReport;
 
 import java.util.HashMap;
 import java.util.Map;
+import d.d.meshenger.R;
 
 /**
  * Fragment for HUD statistics display.

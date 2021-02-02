@@ -29,6 +29,8 @@ import java.util.List;
 
 import static android.os.Looper.getMainLooper;
 
+import d.d.meshenger.call.CallActivity;
+import d.d.meshenger.call.DirectRTCClient;
 
 public class ContactListFragment extends Fragment implements AdapterView.OnItemClickListener {
     private static final String TAG = "ContactListFragment";

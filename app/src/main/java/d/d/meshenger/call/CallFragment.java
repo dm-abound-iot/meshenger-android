@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -21,6 +21,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import org.webrtc.RendererCommon.ScalingType;
+import d.d.meshenger.R;
 
 /**
  * Fragment for call control.
@@ -43,7 +44,8 @@ public class CallFragment extends Fragment {
     void onCallHangUp();
     void onCameraSwitch();
     void onVideoScalingSwitch(ScalingType scalingType);
-    //void onCaptureFormatChange(int width, int height, int framerate);
+    void onVideoMirrorSwitch(boolean mirror);
+    void onCaptureFormatChange(int width, int height, int framerate);
     boolean onToggleMic();
   }
 

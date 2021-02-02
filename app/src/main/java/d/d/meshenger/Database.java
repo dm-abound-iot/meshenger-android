@@ -1,5 +1,7 @@
 package d.d.meshenger;
 
+import android.util.JsonReader;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -8,6 +10,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 
@@ -94,17 +97,51 @@ class Database {
         Utils.writeExternalFile(path, data);
     }
 
-    private static boolean upgradeDatabase(String from, String to, JSONObject obj) throws JSONException {
+    private static void alignSettings(JSONObject settings) throws JSONException {
+        JSONObject defaults = Settings.exportJSON(new Settings());
+
+        // default keys
+        Iterator<String> defaults_iter = defaults.keys();
+        List<String> defaults_keys = new ArrayList<>();
+        while (defaults_iter.hasNext()) {
+            defaults_keys.add(defaults_iter.next());
+        }
+
+        // current keys
+        Iterator<String> settings_iter = settings.keys();
+        List<String> settings_keys = new ArrayList<>();
+        while (settings_iter.hasNext()) {
+            settings_keys.add(settings_iter.next());
+        }
+
+        // add missing keys
+        for (String key : defaults_keys) {
+            if (!settings.has(key)) {
+                settings.put(key, defaults.get(key));
+            }
+        }
+
+        // remove extra keys
+        for (String key : settings_keys) {
+            if (!defaults.has(key)) {
+                settings.remove(key);
+            }
+        }
+    }
+
+    private static boolean upgradeDatabase(String from, String to, JSONObject db) throws JSONException {
         if (from.equals(to)) {
             return false;
         }
 
-        Log.d(TAG, "upgrade database from " + from + " to " + to);
+        Log.d(TAG, "Upgrade database from " + from + " to " + to);
+
+        JSONObject settings = db.getJSONObject("settings");
 
         // 2.0.0 => 2.1.0
         if (from.equals("2.0.0")) {
             // add blocked field (added in 2.1.0)
-            JSONArray contacts = obj.getJSONArray("contacts");
+            JSONArray contacts = db.getJSONArray("contacts");
             for (int i = 0; i < contacts.length(); i += 1) {
                 contacts.getJSONObject(i).put("blocked", false);
             }
@@ -114,8 +151,8 @@ class Database {
         // 2.1.0 => 3.0.0
         if (from.equals("2.1.0")) {
             // add new fields
-            obj.getJSONObject("settings").put("ice_servers", new JSONArray());
-            obj.getJSONObject("settings").put("development_mode", false);
+            settings.put("ice_servers", new JSONArray());
+            settings.put("development_mode", false);
             from = "3.0.0";
         }
 
@@ -128,7 +165,7 @@ class Database {
         // 3.0.1 => 3.0.2
         if (from.equals("3.0.1")) {
             // fix typo in setting name
-            obj.getJSONObject("settings").put("night_mode", obj.getJSONObject("settings").getBoolean("might_mode"));
+            settings.put("night_mode", settings.getBoolean("might_mode"));
             from = "3.0.2";
         }
 
@@ -140,16 +177,13 @@ class Database {
 
         // 3.0.3 => 3.1.0
         if (from.equals("3.0.3")) {
-            obj.getJSONObject("settings").remove("language");
-            obj.getJSONObject("settings").put("send_video", true);
-            obj.getJSONObject("settings").put("receive_video", true);
-            obj.getJSONObject("settings").put("send_audio", true);
-            obj.getJSONObject("settings").put("receive_audio", true);
-            obj.getJSONObject("settings").put("auto_accept_call", false);
             from = "3.1.0";
         }
 
-        obj.put("version", from);
+        // add missing keys with defaults and remove unexpected keys
+        alignSettings(settings);
+
+        db.put("version", from);
 
         return true;
     }

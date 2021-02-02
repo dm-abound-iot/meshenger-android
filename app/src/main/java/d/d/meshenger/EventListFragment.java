@@ -23,10 +23,13 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import d.d.meshenger.call.CallActivity;
+
 import static android.os.Looper.getMainLooper;
 
 
 public class EventListFragment extends Fragment implements AdapterView.OnItemClickListener {
+    private static final String TAG = "EventListFragment";
     private MainActivity mainActivity;
     private ListView eventListView;
     private EventListAdapter eventListAdapter;
@@ -55,10 +58,10 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
     }
 
     void refreshEventList() {
-        Log.d(this, "refreshEventList");
+        Log.d(TAG, "refreshEventList");
 
         if (this.mainActivity == null) {
-            Log.d(this, "refreshEventList early return");
+            Log.d(TAG, "refreshEventList early return");
             return;
         }
 
@@ -66,7 +69,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
             List<Event> events = MainService.instance.getEvents().getEventListCopy();
             List<Contact> contacts = MainService.instance.getContacts().getContactListCopy(); // EventListFragment.this.mainActivity.binder.getContactsCopy();
 
-            Log.d(this, "refreshEventList update: " + events.size());
+            Log.d(TAG, "refreshEventList update: " + events.size());
             eventListAdapter.update(events, contacts);
             eventListAdapter.notifyDataSetChanged();
             eventListView.setAdapter(eventListAdapter);

@@ -6,6 +6,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.net.Uri;
 import android.os.Build;
 import android.os.IBinder;
@@ -15,9 +17,12 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatDelegate;
 import android.text.InputType;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -25,6 +30,8 @@ import java.util.List;
 
 
 public class SettingsActivity extends MeshengerActivity {
+    private static final String TAG = "SettingsActivity";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -51,20 +58,20 @@ public class SettingsActivity extends MeshengerActivity {
     private void initViews() {
         Settings settings = MainService.instance.getSettings();
 
-        findViewById(R.id.changeNameLayout).setOnClickListener((View view) -> {
+        findViewById(R.id.nameLayout).setOnClickListener((View view) -> {
             showChangeNameDialog();
         });
 
-        findViewById(R.id.changeAddressLayout).setOnClickListener((View view) -> {
+        findViewById(R.id.addressLayout).setOnClickListener((View view) -> {
             Intent intent = new Intent(this, AddressActivity.class);
             startActivity(intent);
         });
 
-        findViewById(R.id.changePasswordLayout).setOnClickListener((View view) -> {
+        findViewById(R.id.passwordLayout).setOnClickListener((View view) -> {
             showChangePasswordDialog();
         });
 
-        findViewById(R.id.changeIceServersLayout).setOnClickListener((View view) -> {
+        findViewById(R.id.iceServersLayout).setOnClickListener((View view) -> {
             showChangeIceServersDialog();
         });
 
@@ -163,7 +170,7 @@ public class SettingsActivity extends MeshengerActivity {
         CheckBox ignoreBatteryOptimizationsCB = findViewById(R.id.checkBoxIgnoreBatteryOptimizations);
         ignoreBatteryOptimizationsCB.setChecked(ignoreBatteryOptimizations);
         ignoreBatteryOptimizationsCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
-            // Only required for Adroind 6 or later
+            // Only required for Android 6 or later
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 Intent intent = new Intent(android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
                 intent.setData(Uri.parse("package:" + this.getPackageName()));
@@ -171,23 +178,112 @@ public class SettingsActivity extends MeshengerActivity {
             }
         });
 
-        boolean developmentMode = settings.getDevelopmentMode();
-        CheckBox developmentModeCB = findViewById(R.id.checkBoxDevelopmentMode);
-        developmentModeCB.setChecked(developmentMode);
-        developmentModeCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
-            // save value
-            settings.setDevelopmentMode(isChecked);
-            MainService.instance.saveDatabase();
+        String settingsMode = settings.getSettingsMode();
+        Spinner settingsModeSpinner = findViewById(R.id.spinnerSettingsMode);
+        settingsModeSpinner.setSelection(((ArrayAdapter<CharSequence>) settingsModeSpinner.getAdapter()).getPosition(settingsMode));
+        settingsModeSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                final TypedArray selectedValues = getResources().obtainTypedArray(R.array.settingsModeValues);
+                final String settingsMode = selectedValues.getString(pos);
+                settings.setSettingsMode(settingsMode);
+                MainService.instance.saveDatabase();
+                applySettingsMode(settingsMode);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // ignore
+            }
         });
 
-        if (developmentMode) {
-            findViewById(R.id.changeIgnoreBatteryOptimizations).setVisibility(View.VISIBLE);
-            findViewById(R.id.changeDevelopmentModeLayout).setVisibility(View.VISIBLE);
-            findViewById(R.id.changeIceServersLayout).setVisibility(View.VISIBLE);
-        } else {
-            findViewById(R.id.changeIgnoreBatteryOptimizations).setVisibility(View.GONE);
-            findViewById(R.id.changeDevelopmentModeLayout).setVisibility(View.GONE);
-            findViewById(R.id.changeIceServersLayout).setVisibility(View.GONE);
+        String videoCodec = settings.getVideoCodec();
+        Spinner videoCodecSpinner = findViewById(R.id.spinnerVideoCodecs);
+        videoCodecSpinner.setSelection(((ArrayAdapter<CharSequence>) videoCodecSpinner.getAdapter()).getPosition(videoCodec));
+        videoCodecSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                String videoCodec = parent.getItemAtPosition(pos).toString();
+                settings.setVideoCodec(videoCodec);
+                MainService.instance.saveDatabase();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // ignore
+            }
+        });
+
+        String audioCodec = settings.getAudioCodec();
+        Spinner audioCodecSpinner = findViewById(R.id.spinnerAudioCodecs);
+        audioCodecSpinner.setSelection(((ArrayAdapter<CharSequence>) audioCodecSpinner.getAdapter()).getPosition(audioCodec));
+        audioCodecSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                String audioCodec = parent.getItemAtPosition(pos).toString();
+                settings.setAudioCodec(audioCodec);
+                MainService.instance.saveDatabase();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // ignore
+            }
+        });
+
+        String videoResolution = settings.getVideoResolution();
+        Spinner videoResolutionSpinner = findViewById(R.id.spinnerVideoResolutions);
+        videoResolutionSpinner.setSelection(((ArrayAdapter<CharSequence>) videoResolutionSpinner.getAdapter()).getPosition(videoResolution));
+        videoResolutionSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                final TypedArray selectedValues = getResources().obtainTypedArray(R.array.videoResolutionsValues);
+                final String videoResolution = selectedValues.getString(pos);
+                settings.setVideoResolution(videoResolution);
+                MainService.instance.saveDatabase();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // ignore
+            }
+        });
+
+        String speakerphone = settings.getSpeakerphone();
+        Spinner speakerphoneSpinner = findViewById(R.id.spinnerSpeakerphone);
+        speakerphoneSpinner.setSelection(((ArrayAdapter<CharSequence>) speakerphoneSpinner.getAdapter()).getPosition(speakerphone));
+        speakerphoneSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+                final TypedArray selectedValues = getResources().obtainTypedArray(R.array.speakerphoneValues);
+                final String speakerphone = selectedValues.getString(pos);
+                settings.setSpeakerphone(speakerphone);
+                MainService.instance.saveDatabase();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // ignore
+            }
+        });
+
+        applySettingsMode(settingsMode);
+    }
+
+    private void applySettingsMode(String settingsMode) {
+        switch (settingsMode) {
+            case "compact":
+                findViewById(R.id.ignoreBatteryOptimizationsLayout).setVisibility(View.GONE);
+                findViewById(R.id.iceServersLayout).setVisibility(View.GONE);
+            case "advanced":
+                findViewById(R.id.videoCodecsLayout).setVisibility(View.GONE);
+                findViewById(R.id.audioCodecsLayout).setVisibility(View.GONE);
+                findViewById(R.id.autoAcceptCallLayout).setVisibility(View.GONE);
+            case "expert":
+                break;
+            default:
+                Log.e(TAG, "Invalid settings mode: " + settingsMode);
+                break;
         }
     }
 

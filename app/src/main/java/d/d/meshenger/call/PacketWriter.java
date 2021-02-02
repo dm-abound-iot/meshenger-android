@@ -1,9 +1,10 @@
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 
+import d.d.meshenger.Log;
 
 /* Write the message header before the message is send */
 class PacketWriter {
@@ -27,9 +28,5 @@ class PacketWriter {
     	// need to concatenate?
     	this.os.write(this.header);
         this.os.write(message);
-    }
-
-    private void log(String s) {
-        Log.d(this, s);
     }
 }

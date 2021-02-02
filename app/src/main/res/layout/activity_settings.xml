@@ -17,7 +17,7 @@
             android:orientation="vertical">
 
             <LinearLayout
-                android:id="@+id/changeNameLayout"
+                android:id="@+id/nameLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
@@ -39,7 +39,7 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/changeAddressLayout"
+                android:id="@+id/addressLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
@@ -61,7 +61,33 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/changePasswordLayout"
+                android:id="@+id/settingsModeLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="settings_settings_mode"
+                    android:textColor="?attr/primaryTextColor"
+                    android:textSize="25dp" />
+
+                <Spinner
+                    android:id="@+id/spinnerSettingsMode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawSelectorOnTop="true"
+                    android:textColor="?attr/secondaryTextColor"
+                    android:textSize="15dp"
+                    android:entries="@array/settingsMode"
+                    android:entryValues="@array/settingsModeValues"
+                />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/passwordLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
@@ -83,10 +109,112 @@
             </LinearLayout>
 
             <LinearLayout
-                android:id="@+id/changeIceServersLayout"
+                android:id="@+id/videoResolutionsLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:visibility="gone"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="settings_video_resolutions"
+                    android:textColor="?attr/primaryTextColor"
+                    android:textSize="25dp" />
+
+                <Spinner
+                    android:id="@+id/spinnerVideoResolutions"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawSelectorOnTop="true"
+                    android:textColor="?attr/secondaryTextColor"
+                     android:textSize="15dp"
+                    android:entries="@array/videoResolutions"
+                    android:entryValues="@array/videoResolutionsValues"
+                />
+
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:id="@+id/videoCodecsLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="settings_video_codecs"
+                    android:textColor="?attr/primaryTextColor"
+                    android:textSize="25dp" />
+
+                <Spinner
+                    android:id="@+id/spinnerVideoCodecs"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawSelectorOnTop="true"
+                    android:textColor="?attr/secondaryTextColor"
+                    android:textSize="15dp"
+                    android:entries="@array/videoCodecs"
+                />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/audioCodecsLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="settings_audio_codecs"
+                    android:textColor="?attr/primaryTextColor"
+                    android:textSize="25dp" />
+
+                <Spinner
+                    android:id="@+id/spinnerAudioCodecs"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawSelectorOnTop="true"
+                    android:textColor="?attr/secondaryTextColor"
+                    android:textSize="15dp"
+                    android:entries="@array/audioCodecs"
+                />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/speakerphoneLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="settings_speakerphone"
+                    android:textColor="?attr/primaryTextColor"
+                    android:textSize="25dp" />
+
+                <Spinner
+                    android:id="@+id/spinnerSpeakerphone"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawSelectorOnTop="true"
+                    android:textColor="?attr/secondaryTextColor"
+                    android:textSize="15dp"
+                    android:entries="@array/speakerphone"
+                    android:entryValues="@array/speakerphoneValues"
+                />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/iceServersLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="vertical">
 
                 <TextView
@@ -106,6 +234,7 @@
             </LinearLayout>
 
             <RelativeLayout
+                android:id="@+id/blockUnknownLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -128,7 +257,7 @@
             </RelativeLayout>
 
             <RelativeLayout
-                android:id="@+id/changeIgnoreBatteryOptimizations"
+                android:id="@+id/ignoreBatteryOptimizationsLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -138,7 +267,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_ignore_battery_optimizations"
                     android:textSize="25dp"
-                    android:textColor="?attr/primaryTextColor"  />
+                    android:textColor="?attr/primaryTextColor" />
 
                 <CheckBox
                     android:id="@+id/checkBoxIgnoreBatteryOptimizations"
@@ -147,11 +276,12 @@
                     android:layout_alignParentTop="true"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="5dp"
-                    android:textColor="?attr/secondaryTextColor"  />
+                    android:textColor="?attr/secondaryTextColor" />
 
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/mightModeLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -161,7 +291,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_nightmode"
                     android:textSize="25dp"
-                    android:textColor="?attr/primaryTextColor"  />
+                    android:textColor="?attr/primaryTextColor" />
 
                 <CheckBox
                     android:id="@+id/checkBoxNightMode"
@@ -170,11 +300,12 @@
                     android:layout_alignParentTop="true"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="5dp"
-                    android:textColor="?attr/secondaryTextColor"  />
+                    android:textColor="?attr/secondaryTextColor" />
 
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/sendAudioLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -184,7 +315,7 @@
                     android:layout_height="wrap_content"
                     android:text="Enable Microphone"
                     android:textSize="25dp"
-                    android:textColor="?attr/primaryTextColor"  />
+                    android:textColor="?attr/primaryTextColor" />
 
                 <CheckBox
                     android:id="@+id/checkBoxSendAudio"
@@ -193,12 +324,13 @@
                     android:layout_alignParentTop="true"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="5dp"
-                    android:textColor="?attr/secondaryTextColor"  />
+                    android:textColor="?attr/secondaryTextColor" />
 
             </RelativeLayout>
 
 
             <RelativeLayout
+                android:id="@+id/receiveAudioLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -208,7 +340,7 @@
                     android:layout_height="wrap_content"
                     android:text="Enable Speaker"
                     android:textSize="25dp"
-                    android:textColor="?attr/primaryTextColor"  />
+                    android:textColor="?attr/primaryTextColor" />
 
                 <CheckBox
                     android:id="@+id/checkBoxReceiveAudio"
@@ -217,11 +349,12 @@
                     android:layout_alignParentTop="true"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="5dp"
-                    android:textColor="?attr/secondaryTextColor"  />
+                    android:textColor="?attr/secondaryTextColor" />
 
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/sendVideoLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -231,7 +364,7 @@
                     android:layout_height="wrap_content"
                     android:text="Enable Camera"
                     android:textSize="25dp"
-                    android:textColor="?attr/primaryTextColor"  />
+                    android:textColor="?attr/primaryTextColor" />
 
                 <CheckBox
                     android:id="@+id/checkBoxSendVideo"
@@ -240,11 +373,12 @@
                     android:layout_alignParentTop="true"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="5dp"
-                    android:textColor="?attr/secondaryTextColor"  />
+                    android:textColor="?attr/secondaryTextColor" />
 
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/receiveVideoLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -254,7 +388,7 @@
                     android:layout_height="wrap_content"
                     android:text="Enable Video"
                     android:textSize="25dp"
-                    android:textColor="?attr/primaryTextColor"  />
+                    android:textColor="?attr/primaryTextColor" />
 
                 <CheckBox
                     android:id="@+id/checkBoxReceiveVideo"
@@ -263,11 +397,12 @@
                     android:layout_alignParentTop="true"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="5dp"
-                    android:textColor="?attr/secondaryTextColor"  />
+                    android:textColor="?attr/secondaryTextColor" />
 
             </RelativeLayout>
 
             <RelativeLayout
+                android:id="@+id/autoAcceptCallLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -277,7 +412,7 @@
                     android:layout_height="wrap_content"
                     android:text="Accept Calls Automatically"
                     android:textSize="25dp"
-                    android:textColor="?attr/primaryTextColor"  />
+                    android:textColor="?attr/primaryTextColor" />
 
                 <CheckBox
                     android:id="@+id/checkBoxAutoAcceptCall"
@@ -286,12 +421,12 @@
                     android:layout_alignParentTop="true"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="5dp"
-                    android:textColor="?attr/secondaryTextColor"  />
+                    android:textColor="?attr/secondaryTextColor" />
 
             </RelativeLayout>
 
             <RelativeLayout
-                android:id="@+id/changeDevelopmentModeLayout"
+                android:id="@+id/developmentModeLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp">
@@ -301,7 +436,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/settings_development_mode"
                     android:textSize="25dp"
-                    android:textColor="?attr/primaryTextColor"  />
+                    android:textColor="?attr/primaryTextColor" />
 
                 <CheckBox
                     android:id="@+id/checkBoxDevelopmentMode"
@@ -310,7 +445,7 @@
                     android:layout_alignParentTop="true"
                     android:layout_alignParentEnd="true"
                     android:layout_margin="5dp"
-                    android:textColor="?attr/secondaryTextColor"  />
+                    android:textColor="?attr/secondaryTextColor" />
 
             </RelativeLayout>
 

@@ -1,8 +1,10 @@
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
+
+import d.d.meshenger.Log;
 
 
 /* Read the message size from the header and return the message of the correct size */
@@ -57,9 +59,5 @@ class PacketReader {
         }
 
         return null;
-    }
-
-    private void log(String s) {
-        Log.d(this, s);
     }
 }

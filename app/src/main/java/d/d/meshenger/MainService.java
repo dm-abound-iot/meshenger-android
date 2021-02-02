@@ -35,6 +35,10 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import d.d.meshenger.call.CallActivity;
+import d.d.meshenger.call.DirectRTCClient;
+//import d.d.meshenger.call.PacketWriter;
+
 import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
 
 
@@ -157,6 +161,7 @@ public class MainService extends Service implements Runnable {
         // shutdown listening socket and say goodbye
         if (database != null && server != null && server.isBound() && !server.isClosed()) {
             try {
+                /*
                 byte[] ownPublicKey = getSettings().getPublicKey();
                 byte[] ownSecretKey = getSettings().getSecretKey();
                 String message = "{\"action\": \"status_change\", \"status\", \"offline\"}";
@@ -192,7 +197,7 @@ public class MainService extends Service implements Runnable {
                         }
                     }
                 }
-
+                */
                 server.close();
             } catch (Exception e) {
                 e.printStackTrace();

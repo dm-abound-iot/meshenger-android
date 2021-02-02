@@ -41,7 +41,7 @@ public class MainActivity extends MeshengerActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d(this, "onCreate");
+        Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -73,7 +73,7 @@ public class MainActivity extends MeshengerActivity {
 
             @Override
             public void onPageSelected(int position) {
-                Log.d(this,  "onPageSelected, position: " + position);
+                Log.d(TAG,  "onPageSelected, position: " + position);
                 MainActivity.this.currentPage = position;
                 if (position == 1) {
                     MainActivity.this.eventListAccessed = new Date();
@@ -95,7 +95,7 @@ public class MainActivity extends MeshengerActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(this, "onDestroy");
+        Log.d(TAG, "onDestroy");
         LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshEventListReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshContactListReceiver);
 
@@ -103,7 +103,7 @@ public class MainActivity extends MeshengerActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        Log.d(this,"onOptionsItemSelected");
+        Log.d(TAG,"onOptionsItemSelected");
         int id = item.getItemId();
 
         switch (id) {
@@ -211,13 +211,13 @@ public class MainActivity extends MeshengerActivity {
                 }
                 break;
             default:
-                Log.e(this, "Unknown permission requestCode: " + requestCode);
+                Log.e(TAG, "Unknown permission requestCode: " + requestCode);
         }
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        Log.d(this, "onCreateOptionsMenu");
+        Log.d(TAG, "onCreateOptionsMenu");
         getMenuInflater().inflate(R.menu.menu_main_activity, menu);
         return true;
     }
@@ -238,7 +238,7 @@ public class MainActivity extends MeshengerActivity {
 
         @Override
         public CharSequence getPageTitle(int position) {
-            Log.d(this, "getPageTitle");
+            Log.d(TAG, "getPageTitle");
             if (mFragmentList.get(position) instanceof EventListFragment) {
                 if (this.missedCalls > 0) {
                     return mFragmentTitleList.get(position) + " (" + missedCalls + ")";

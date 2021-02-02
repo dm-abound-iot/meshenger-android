@@ -102,13 +102,13 @@ public class Contact implements Serializable {
                     list.add(Utils.parseInetSocketAddress(address, MainService.serverPort));
                 }
             } catch (Exception e) {
-                Log.e(this, "invalid address: " + address);
+                Log.e(TAG, "invalid address: " + address);
                 e.printStackTrace();
             }
         }
 
         for (InetSocketAddress address : list) {
-            Log.d(this, "got address: " + address);
+            Log.d(TAG, "got address: " + address);
         }
 
         // sort addresses, prefer last successful address and IPv6
@@ -195,7 +195,7 @@ public class Contact implements Serializable {
         int connectionTimeout = 500;
 
         for (InetSocketAddress address : this.getAllSocketAddresses()) {
-            Log.d(this, "try address: '" + address.getAddress() + "', port: " + address.getPort());
+            Log.d(TAG, "try address: '" + address.getAddress() + "', port: " + address.getPort());
             socket = this.establishConnection(address, connectionTimeout);
             if (socket != null) {
                 return socket;
@@ -207,7 +207,7 @@ public class Contact implements Serializable {
 
     // set good address to try first next time
     public void setLastWorkingAddress(InetSocketAddress address) {
-        Log.d(this, "setLatestWorkingAddress: " + address);
+        Log.d(TAG, "setLatestWorkingAddress: " + address);
         this.last_working_address = address;
     }
 

@@ -8,7 +8,7 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-package d.d.meshenger;
+package d.d.meshenger.call;
 
 import android.app.Fragment;
 import android.media.AudioManager;
@@ -32,6 +32,8 @@ import java.util.Map;
 import static android.content.Context.AUDIO_SERVICE;
 import static android.content.Context.VIBRATOR_SERVICE;
 import static org.webrtc.ContextUtils.getApplicationContext;
+import d.d.meshenger.R;
+import d.d.meshenger.Log;
 
 /**
  * Fragment for Waiting
