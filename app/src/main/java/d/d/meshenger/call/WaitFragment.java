@@ -36,7 +36,7 @@ import d.d.meshenger.R;
 import d.d.meshenger.Log;
 
 /**
- * Fragment for Waiting
+ * Show "Calling..." screen and ring/vibrate phone for incoming calls.
  */
 public class WaitFragment extends Fragment {
   private static final String TAG = "WaitFragment";
@@ -58,18 +58,12 @@ public class WaitFragment extends Fragment {
     callNameTV = controlView.findViewById(R.id.callName);
     callStatusTV = controlView.findViewById(R.id.callStatus);
 
-    callAcceptIB.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-
-      }
+    callAcceptIB.setOnClickListener((View view) -> {
+      // TODO
     });
 
-    callDeclineIB.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        
-      }
+    callDeclineIB.setOnClickListener((View view) -> {
+        // TODO
     });
 
     return controlView;
@@ -114,13 +108,8 @@ public class WaitFragment extends Fragment {
   }
 
   @Override
-  public void onStart() {
-    super.onStart();
-  }
-
-  @Override
   public void onStop() {
-        stopRinging();
+      stopRinging();
       super.onStop();
   }
 }

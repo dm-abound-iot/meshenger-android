@@ -58,23 +58,21 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
   private ConnectionState roomState;
 
   public DirectRTCClient(Socket socket) {
-    this.socket = socket;
-    this.contact = null;
-    this.isServer = true;
-    this.socketLock = new Object();
-    this.executor = Executors.newSingleThreadExecutor();
-    this.roomState = ConnectionState.NEW;
+    this(socket, null);
   }
 
   public DirectRTCClient(Contact contact) {
-    this.socket = null;
+    this(null, contact);
+    Log.d(TAG, "Contact: name: " + contact.getName() + ", addresses: " + contact.getAddresses());
+  }
+
+  private DirectRTCClient(Socket socket, Contact contact) {
     this.contact = contact;
-    this.isServer = false;
+    this.socket = socket;
+    this.isServer = (socket != null);
     this.socketLock = new Object();
     this.executor = Executors.newSingleThreadExecutor();
     this.roomState = ConnectionState.NEW;
-
-    Log.d(TAG, "Contact: name: " + contact.getName() + ", addresses: " + contact.getAddresses());
   }
 
   public void setEventListener(SignalingEvents events) {
@@ -105,8 +103,6 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         Log.d(TAG, "Incoming socket already present (server).");
       }
 
-      //rawSocket = tempSocket;
-
       // Connecting failed, error has already been reported, just exit.
       if (socket == null) {
         reportError("Connection failed.");
@@ -125,12 +121,9 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
     }
 
     Log.v(TAG, "Execute onTCPConnected");
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
+    executor.execute(() -> {
         Log.v(TAG, "Run onTCPConnected (isServer: " + isServer + ")");
         /*eventListener.*/ onTCPConnected(isServer);
-      }
     });
 
     while (true) {
@@ -154,12 +147,17 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         break;
       }
 
-      executor.execute(new Runnable() {
-        @Override
-        public void run() {
-          Log.v(TAG, "Receive: " + message);
-          /*eventListener.*/onTCPMessage(message);
-        }
+      if (contact == null) {
+        // TODO: try to decrypt and set contact
+      } else {
+        // TODO: decrypt
+      }
+
+      // what if caller is unknown?
+
+      executor.execute(() -> {
+        Log.v(TAG, "Receive: " + message);
+        /*eventListener.*/onTCPMessage(message);
       });
     }
 
@@ -180,11 +178,8 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
           socket = null;
           out = null;
 
-          executor.execute(new Runnable() {
-            @Override
-            public void run() {
-              /*eventListener.*/onTCPClose();
-            }
+          executor.execute(() -> {
+            /*eventListener.*/onTCPClose();
           });
         }
       }
@@ -203,21 +198,15 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
     //this.address = address;
     //this.port = port;
 
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
-        connectToRoomInternal();
-      }
+    executor.execute(() -> {
+      connectToRoomInternal();
     });
   }
 
   @Override
   public void disconnectFromRoom() {
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
-        disconnectFromRoomInternal();
-      }
+    executor.execute(() -> {
+      disconnectFromRoomInternal();
     });
   }
 

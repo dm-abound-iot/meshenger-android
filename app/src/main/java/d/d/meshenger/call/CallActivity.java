@@ -123,9 +123,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   private VideoFileRenderer videoFileRenderer;
   private final List<VideoSink> remoteSinks = new ArrayList<>();
   private Toast logToast;
-  //private boolean commandLineRun;
   private boolean activityRunning;
-  //private RoomConnectionParameters roomConnectionParameters;
   @Nullable
   private PeerConnectionParameters peerConnectionParameters;
   private boolean connected;
@@ -133,7 +131,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   private boolean callControlFragmentVisible = true;
   private long callStartedTimeMs;
   private boolean micEnabled = true;
-  //private boolean screencaptureEnabled;
   private static Intent mediaProjectionPermissionResultData;
   private static int mediaProjectionPermissionResultCode;
   // True if local view is in the fullscreen renderer.
@@ -142,8 +139,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   // Controls
   private CallFragment callFragment;
   private HudFragment hudFragment;
-  private WaitFragment waitFragment;
-  //private CpuMonitor cpuMonitor;
+  //private WaitFragment waitFragment;
+  //private CpuMonitor cpuMonitor; //statsFragment
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -169,25 +166,18 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
     callFragment = new CallFragment();
     hudFragment = new HudFragment();
-    waitFragment = new WaitFragment();
+    //waitFragment = new WaitFragment();
 
     // Show/hide call control fragment on view click.
-    View.OnClickListener listener = new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        toggleCallControlFragmentVisibility();
-      }
-    };
-
-    // Swap feeds on pip view click.
-    pipRenderer.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        setSwappedFeeds(!isSwappedFeeds);
-      }
+    fullscreenRenderer.setOnClickListener((View view) -> {
+      toggleCallControlFragmentVisibility();
     });
 
-    fullscreenRenderer.setOnClickListener(listener);
+    // Swap feeds on pip view click.
+    pipRenderer.setOnClickListener((View view) -> {
+      setSwappedFeeds(!isSwappedFeeds);
+    });
+
     remoteSinks.add(remoteProxyRenderer);
 
     final Intent intent = getIntent();
@@ -196,22 +186,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     // Create video renderers.
     pipRenderer.init(eglBase.getEglBaseContext(), null);
     pipRenderer.setScalingType(ScalingType.SCALE_ASPECT_FIT);
-    /*
-    String saveRemoteVideoToFile = intent.getStringExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE);
 
-    // When saveRemoteVideoToFile is set we save the video from the remote to a file.
-    if (saveRemoteVideoToFile != null) {
-      int videoOutWidth = intent.getIntExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_WIDTH, 0);
-      int videoOutHeight = intent.getIntExtra(EXTRA_SAVE_REMOTE_VIDEO_TO_FILE_HEIGHT, 0);
-      try {
-        videoFileRenderer = new VideoFileRenderer(
-            saveRemoteVideoToFile, videoOutWidth, videoOutHeight, eglBase.getEglBaseContext());
-        remoteSinks.add(videoFileRenderer);
-      } catch (IOException e) {
-        throw new RuntimeException(
-            "Failed to open video file for output: " + saveRemoteVideoToFile, e);
-      }
-    }*/
     fullscreenRenderer.init(eglBase.getEglBaseContext(), null);
     fullscreenRenderer.setScalingType(ScalingType.SCALE_ASPECT_FILL);
 
@@ -230,33 +205,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
         return;
       }
     }
-
-/*
-    Uri roomUri = intent.getData();
-    if (roomUri == null) {
-      logAndToast(getString(R.string.missing_url));
-      Log.e(TAG, "Didn't get any URL in intent!");
-      setResult(RESULT_CANCELED);
-      finish();
-      return;
-    }
-
-    // Get Intent parameters.
-    String roomId = intent.getStringExtra(EXTRA_ROOMID);
-    Log.d(TAG, "Room ID: " + roomId);
-    if (roomId == null || roomId.length() == 0) {
-      logAndToast(getString(R.string.missing_url));
-      Log.e(TAG, "Incorrect room ID in intent!");
-      setResult(RESULT_CANCELED);
-      finish();
-      return;
-    }
-*/
-    //boolean loopback = intent.getBooleanExtra(EXTRA_LOOPBACK, false);
-    //boolean tracing = intent.getBooleanExtra(EXTRA_TRACING, false);
-
-    //int videoWidth = intent.getIntExtra(EXTRA_VIDEO_WIDTH, 0);
-    //int videoHeight = intent.getIntExtra(EXTRA_VIDEO_HEIGHT, 0);
 
     //screencaptureEnabled = intent.getBooleanExtra(EXTRA_SCREENCAPTURE, false);
     // If capturing format is not specified for screencapture, use screen resolution.
@@ -303,24 +251,19 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
       dataChannelParameters
     );
     peerConnectionParameters.debug();
-    //commandLineRun = intent.getBooleanExtra(EXTRA_CMDLINE, false);
-    //int runTimeMs = intent.getIntExtra(EXTRA_RUNTIME, 0);
 
-    //Log.d(TAG, "VIDEO_FILE: '" + intent.getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA) + "'");
-
-    // Create connection client. Use DirectRTCClient if room name is an IP otherwise use the
-    // standard WebSocketRTCClient.
-    //if (loopback || !DirectRTCClient.IP_PATTERN.matcher(roomId).matches()) {
-    //  appRtcClient = new WebSocketRTCClient(this);
-    //} else {
-      //Log.i(TAG, "Using DirectRTCClient because room name looks like an IP.");
-
-      //appRtcClient = new DirectRTCClient(this);
-    //}
-    // Create connection parameters.
-    //String urlParameters = intent.getStringExtra(EXTRA_URLPARAMETERS);
-    //roomConnectionParameters =
-    //    new RoomConnectionParameters(roomUri.toString(), roomId, loopback, urlParameters);
+/*
+    // Create CPU monitor
+    if (CpuMonitor.isSupported()) {
+      cpuMonitor = new CpuMonitor(this);
+      hudFragment.setCpuMonitor(cpuMonitor);
+    }
+*/
+    // Activate call and HUD fragments and start the call.
+    FragmentTransaction ft = getFragmentManager().beginTransaction();
+    ft.add(R.id.call_fragment_container, callFragment);
+    ft.add(R.id.hud_fragment_container, hudFragment);
+    ft.commit();
 
 {
 // my addition
@@ -341,48 +284,24 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
 }
 
 /*
-    // Create CPU monitor
-    if (CpuMonitor.isSupported()) {
-      cpuMonitor = new CpuMonitor(this);
-      hudFragment.setCpuMonitor(cpuMonitor);
-    }
+  // CallFragment.OnCallEvents interface implementation.
+  @Override
+  public void onCallHangUp() {
+    disconnect();
+  }
 */
 
-    // Send intent arguments to fragments.
-    //callFragment.setArguments(intent.getExtras());
-    //hudFragment.setArguments(intent.getExtras());
-    // Activate call and HUD fragments and start the call.
-    FragmentTransaction ft = getFragmentManager().beginTransaction();
-    ft.add(R.id.call_fragment_container, callFragment);
-    ft.add(R.id.hud_fragment_container, hudFragment);
-    ft.commit();
-/*
-    // For command line execution run connection for <runTimeMs> and exit.
-    if (commandLineRun && runTimeMs > 0) {
-      (new Handler()).postDelayed(new Runnable() {
-        @Override
-        public void run() {
-          disconnect();
-        }
-      }, runTimeMs);
-    }
-*/
+
 
     // Create peer connection client.
     peerConnectionClient = new PeerConnectionClient(
         getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
+
     PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
     //options.disableNetworkMonitor = true; // from email by dante carvalho to fix connection in case of tethering
-    //if (loopback) {
-    //  options.networkIgnoreMask = 0;
-    //}
     peerConnectionClient.createPeerConnectionFactory(options);
 
-    //if (screencaptureEnabled) {
-    //  startScreenCapture();
-    //} else {
-      startCall();
-    //}
+    startCall();
   }
 
   @TargetApi(17)
@@ -403,16 +322,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     return flags;
   }
 
-/*
-  @TargetApi(21)
-  private void startScreenCapture() {
-    MediaProjectionManager mediaProjectionManager =
-        (MediaProjectionManager) getApplication().getSystemService(
-            Context.MEDIA_PROJECTION_SERVICE);
-    startActivityForResult(
-        mediaProjectionManager.createScreenCaptureIntent(), CAPTURE_PERMISSION_REQUEST_CODE);
-  }
-*/
   // we first started to ask for permission
   // if successfull => start call
   @Override
@@ -464,22 +373,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     return null;
   }
 
-/*
-  @TargetApi(21)
-  private @Nullable VideoCapturer createScreenCapturer() {
-    if (mediaProjectionPermissionResultCode != Activity.RESULT_OK) {
-      reportError("User didn't give permission to capture the screen.");
-      return null;
-    }
-    return new ScreenCapturerAndroid(
-        mediaProjectionPermissionResultData, new MediaProjection.Callback() {
-      @Override
-      public void onStop() {
-        reportError("User revoked permission to capture the screen.");
-      }
-    });
-  }
-*/
   // Activity interfaces
   @Override
   public void onStop() {
@@ -534,6 +427,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     }
   }
 
+  // added by myself
   @Override
   public void onVideoMirrorSwitch(boolean mirror) {
     fullscreenRenderer.setMirror(mirror); //!fullscreenRenderer.getMirror());
@@ -704,13 +598,10 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   }
 
   private void reportError(final String description) {
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        if (!isError) {
-          isError = true;
-          disconnectWithErrorMessage(description);
-        }
+    runOnUiThread(() -> {
+      if (!isError) {
+        isError = true;
+        disconnectWithErrorMessage(description);
       }
     });
   }
@@ -798,11 +689,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   public void onConnectedToRoom(final SignalingParameters params) {
     // TODO: ringing (if not auto accept)
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        onConnectedToRoomInternal(params);
-      }
+    runOnUiThread(() -> {
+      onConnectedToRoomInternal(params);
     });
   }
 
@@ -810,61 +698,49 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   public void onRemoteDescription(final SessionDescription desc) {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        if (peerConnectionClient == null) {
-          Log.e(TAG, "Received remote SDP for non-initilized peer connection.");
-          return;
-        }
-        logAndToast("Received remote " + desc.type + ", delay=" + delta + "ms");
-        peerConnectionClient.setRemoteDescription(desc);
-        if (!signalingParameters.initiator) {
-          logAndToast("Creating ANSWER...");
-          // Create answer. Answer SDP will be sent to offering client in
-          // PeerConnectionEvents.onLocalDescription event.
-          peerConnectionClient.createAnswer();
-        }
+    runOnUiThread(() -> {
+      if (peerConnectionClient == null) {
+        Log.e(TAG, "Received remote SDP for non-initilized peer connection.");
+        return;
+      }
+      logAndToast("Received remote " + desc.type + ", delay=" + delta + "ms");
+      peerConnectionClient.setRemoteDescription(desc);
+      if (!signalingParameters.initiator) {
+        logAndToast("Creating ANSWER...");
+        // Create answer. Answer SDP will be sent to offering client in
+        // PeerConnectionEvents.onLocalDescription event.
+        peerConnectionClient.createAnswer();
       }
     });
   }
 
   @Override
   public void onRemoteIceCandidate(final IceCandidate candidate) {
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        if (peerConnectionClient == null) {
-          Log.e(TAG, "Received ICE candidate for a non-initialized peer connection.");
-          return;
-        }
-        peerConnectionClient.addRemoteIceCandidate(candidate);
+    runOnUiThread(() -> {
+      if (peerConnectionClient == null) {
+        Log.e(TAG, "Received ICE candidate for a non-initialized peer connection.");
+        return;
       }
+      peerConnectionClient.addRemoteIceCandidate(candidate);
     });
   }
 
   @Override
   public void onRemoteIceCandidatesRemoved(final IceCandidate[] candidates) {
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        if (peerConnectionClient == null) {
-          Log.e(TAG, "Received ICE candidate removals for a non-initialized peer connection.");
-          return;
-        }
-        peerConnectionClient.removeRemoteIceCandidates(candidates);
+    runOnUiThread(() -> {
+      if (peerConnectionClient == null) {
+        Log.e(TAG, "Received ICE candidate removals for a non-initialized peer connection.");
+        return;
       }
+      peerConnectionClient.removeRemoteIceCandidates(candidates);
     });
   }
 
   @Override
   public void onChannelClose() {
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        logAndToast("Remote end hung up; dropping PeerConnection");
-        disconnect();
-      }
+    runOnUiThread(() -> {
+      logAndToast("Remote end hung up; dropping PeerConnection");
+      disconnect();
     });
   }
 
@@ -880,23 +756,20 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   public void onLocalDescription(final SessionDescription desc) {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        if (appRtcClient != null) {
-          logAndToast("Sending " + desc.type + ", delay=" + delta + "ms");
-          if (signalingParameters.initiator) {
-            logAndToast("appRtcClient.sendOfferSdp");
-            appRtcClient.sendOfferSdp(desc);
-          } else {
-            logAndToast("appRtcClient.sendAnswerSdp");
-            appRtcClient.sendAnswerSdp(desc);
-          }
+    runOnUiThread(() -> {
+      if (appRtcClient != null) {
+        logAndToast("Sending " + desc.type + ", delay=" + delta + "ms");
+        if (signalingParameters.initiator) {
+          logAndToast("appRtcClient.sendOfferSdp");
+          appRtcClient.sendOfferSdp(desc);
+        } else {
+          logAndToast("appRtcClient.sendAnswerSdp");
+          appRtcClient.sendAnswerSdp(desc);
         }
-        if (peerConnectionParameters.videoMaxBitrate > 0) {
-          Log.d(TAG, "Set video maximum bitrate: " + peerConnectionParameters.videoMaxBitrate);
-          peerConnectionClient.setVideoMaxBitrate(peerConnectionParameters.videoMaxBitrate);
-        }
+      }
+      if (peerConnectionParameters.videoMaxBitrate > 0) {
+        Log.d(TAG, "Set video maximum bitrate: " + peerConnectionParameters.videoMaxBitrate);
+        peerConnectionClient.setVideoMaxBitrate(peerConnectionParameters.videoMaxBitrate);
       }
     });
   }
@@ -904,12 +777,9 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   public void onIceCandidate(final IceCandidate candidate) {
     Log.d(TAG, "appRtcClient.sendLocalIceCandidate");
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        if (appRtcClient != null) {
-          appRtcClient.sendLocalIceCandidate(candidate);
-        }
+    runOnUiThread(() -> {
+      if (appRtcClient != null) {
+        appRtcClient.sendLocalIceCandidate(candidate);
       }
     });
   }
@@ -917,12 +787,9 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   public void onIceCandidatesRemoved(final IceCandidate[] candidates) {
     Log.d(TAG, "appRtcClient.sendLocalIceCandidateRemovals");
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        if (appRtcClient != null) {
-          appRtcClient.sendLocalIceCandidateRemovals(candidates);
-        }
+    runOnUiThread(() -> {
+      if (appRtcClient != null) {
+        appRtcClient.sendLocalIceCandidateRemovals(candidates);
       }
     });
   }
@@ -930,21 +797,15 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   public void onIceConnected() {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        logAndToast("ICE connected, delay=" + delta + "ms");
-      }
+    runOnUiThread(() -> {
+      logAndToast("ICE connected, delay=" + delta + "ms");
     });
   }
 
   @Override
   public void onIceDisconnected() {
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
+    runOnUiThread(() -> {
         logAndToast("ICE disconnected");
-      }
     });
   }
 
@@ -952,25 +813,19 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   @Override
   public void onConnected() {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        logAndToast("DTLS connected, delay=" + delta + "ms");
-        connected = true;
-        callConnected();
-      }
+    runOnUiThread(() -> {
+      logAndToast("DTLS connected, delay=" + delta + "ms");
+      connected = true;
+      callConnected();
     });
   }
 
   @Override
   public void onDisconnected() {
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        logAndToast("DTLS disconnected");
-        connected = false;
-        disconnect();
-      }
+    runOnUiThread(() -> {
+      logAndToast("DTLS disconnected");
+      connected = false;
+      disconnect();
     });
   }
 
@@ -979,12 +834,9 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
 
   @Override
   public void onPeerConnectionStatsReady(final StatsReport[] reports) {
-    runOnUiThread(new Runnable() {
-      @Override
-      public void run() {
-        if (!isError && connected) {
-          hudFragment.updateEncoderStatistics(reports);
-        }
+    runOnUiThread(() -> {
+      if (!isError && connected) {
+        hudFragment.updateEncoderStatistics(reports);
       }
     });
   }

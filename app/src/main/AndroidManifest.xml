@@ -74,7 +74,7 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".CallActivity"
+        <activity android:name=".call.CallActivity"
                   android:label="Meshenger"
                   android:screenOrientation="fullUser"
                   android:configChanges="orientation|smallestScreenSize|screenSize|screenLayout">

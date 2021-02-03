@@ -64,41 +64,29 @@ public class CallFragment extends Fragment {
     //captureFormatSlider = controlView.findViewById(R.id.capture_format_slider_call);
 
     // Add buttons click events.
-    disconnectButton.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        callEvents.onCallHangUp();
-      }
+    disconnectButton.setOnClickListener((View view) -> {
+      callEvents.onCallHangUp();
     });
 
-    cameraSwitchButton.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        callEvents.onCameraSwitch();
-      }
+    cameraSwitchButton.setOnClickListener((View view) -> {
+      callEvents.onCameraSwitch();
     });
 
-    videoScalingButton.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        if (scalingType == ScalingType.SCALE_ASPECT_FILL) {
-          videoScalingButton.setBackgroundResource(R.drawable.ic_action_full_screen);
-          scalingType = ScalingType.SCALE_ASPECT_FIT;
-        } else {
-          videoScalingButton.setBackgroundResource(R.drawable.ic_action_return_from_full_screen);
-          scalingType = ScalingType.SCALE_ASPECT_FILL;
-        }
-        callEvents.onVideoScalingSwitch(scalingType);
+    videoScalingButton.setOnClickListener((View view) -> {
+      if (scalingType == ScalingType.SCALE_ASPECT_FILL) {
+        videoScalingButton.setBackgroundResource(R.drawable.ic_action_full_screen);
+        scalingType = ScalingType.SCALE_ASPECT_FIT;
+      } else {
+        videoScalingButton.setBackgroundResource(R.drawable.ic_action_return_from_full_screen);
+        scalingType = ScalingType.SCALE_ASPECT_FILL;
       }
+      callEvents.onVideoScalingSwitch(scalingType);
     });
     scalingType = ScalingType.SCALE_ASPECT_FILL;
 
-    toggleMuteButton.setOnClickListener(new View.OnClickListener() {
-      @Override
-      public void onClick(View view) {
-        boolean enabled = callEvents.onToggleMic();
-        toggleMuteButton.setAlpha(enabled ? 1.0f : 0.3f);
-      }
+    toggleMuteButton.setOnClickListener((View view) -> {
+      boolean enabled = callEvents.onToggleMic();
+      toggleMuteButton.setAlpha(enabled ? 1.0f : 0.3f);
     });
 
     return controlView;
