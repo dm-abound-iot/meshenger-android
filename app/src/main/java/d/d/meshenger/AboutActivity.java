@@ -11,7 +11,7 @@ import android.widget.Toast;
 
 
 public class AboutActivity extends MeshengerActivity {
-    //private int versionClicked = 0;
+    private final String TAG = "AboutActivity";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

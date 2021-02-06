@@ -13,20 +13,65 @@ public class Settings {
     private byte[] secretKey;
     private byte[] publicKey;
     private boolean nightMode;
+    /*
+     * blockUnknown
+     *
+     * true  => do not show/accept calls from contacts that are not in the contact list
+     * false => accept any calls (default)
+     */
     private boolean blockUnknown;
+    /*
+     * settingsMode:
+     *
+     * "basic"    => show basic settings (default)
+     * "advanced" => show more settings
+     * "expert"   => show all settings
+     */
     private String settingsMode;
     private boolean sendVideo;
     private boolean receiveVideo;
     private boolean sendAudio;
     private boolean receiveAudio;
+    /*
+     * autoAcceptCall:
+     *
+     *  true  => accept incoming and no ringing
+     *  false => wait an incoming call to be accepted (default)
+     */
     private boolean autoAcceptCall;
+    /*
+     * autoConnectCall:
+     *
+     *  true  => start outgoing call without prompt (default)
+     *  false => allow to change call settings before the call is started
+     */
+    private boolean autoConnectCall;
     private boolean audioProcessing;
     private String videoCodec;
     private String audioCodec;
+    /*
+     * speakerphone:
+     *
+     *  "auto"  => enable/disable by proximity sensor (default)
+     *  "true"  => enable hands-free talking
+     *  "false" => disable hands-free talking
+     */
     private String speakerphone;
     private String videoResolution;
+    /*
+     * addresses:
+     *
+     * List of MAC addresses, IP addresses
+     * and hostnames to give out by QR-Code.
+     * By default contains a single MAC address.
+     */
     private List<String> addresses;
-    // ICE (Interactive Connectivity Establishment) servers implement STUN and TURN
+    /*
+     * iceServers:
+     *
+     * Optional list of ICE (Interactive Connectivity Establishment)
+     * server that implement STUN and TURN.
+     */
     private List<String> iceServers;
 
     public Settings() {
@@ -36,12 +81,13 @@ public class Settings {
         this.publicKey = null;
         this.nightMode = false;
         this.blockUnknown = false;
-        this.settingsMode = "default";
+        this.settingsMode = "basic";
         this.sendVideo = true;
         this.receiveVideo = true;
         this.sendAudio = true;
         this.receiveAudio = true;
         this.autoAcceptCall = false;
+        this.autoConnectCall = true;
         this.audioProcessing = true;
         this.videoCodec = "VP8";
         this.audioCodec = "OPUS";
@@ -139,6 +185,14 @@ public class Settings {
         this.autoAcceptCall = autoAcceptCall;
     }
 
+    public boolean getAutoConnectCall() {
+        return autoConnectCall;
+    }
+
+    public void setAutoConnectCall(boolean autoConnectCall) {
+        this.autoConnectCall = autoConnectCall;
+    }
+
     public boolean getAudioProcessing() {
         return audioProcessing;
     }
@@ -218,6 +272,7 @@ public class Settings {
         s.sendAudio = obj.getBoolean("send_audio");
         s.receiveAudio = obj.getBoolean("receive_audio");
         s.autoAcceptCall = obj.getBoolean("auto_accept_call");
+        s.autoConnectCall = obj.getBoolean("auto_connect_call");
         s.audioProcessing = obj.getBoolean("audio_processing");
         s.videoCodec = obj.getString("video_codec");
         s.audioCodec = obj.getString("audio_codec");
@@ -250,6 +305,7 @@ public class Settings {
         obj.put("send_audio", s.sendAudio);
         obj.put("receive_audio", s.receiveAudio);
         obj.put("auto_accept_call", s.autoAcceptCall);
+        obj.put("auto_connect_call", s.autoConnectCall);
         obj.put("audio_processing", s.audioProcessing);
         obj.put("video_codec", s.videoCodec);
         obj.put("audio_codec", s.audioCodec);

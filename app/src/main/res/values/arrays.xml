@@ -2,13 +2,13 @@
 <resources>
 
     <string-array name="settingsMode">
-        <item>Default</item>
+        <item>Basic</item>
         <item>Advanced</item>
         <item>Expert</item>
     </string-array>
 
     <string-array name="settingsModeValues">
-        <item>default</item>
+        <item>basic</item>
         <item>advanced</item>
         <item>expert</item>
     </string-array>

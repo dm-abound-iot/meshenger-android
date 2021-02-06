@@ -202,7 +202,7 @@ public class PeerConnectionClient {
     public void debug() {
       Log.d("DataChannelParameters",
               "ordered: " + ordered + "\n"
-                      + "maxRetransmitTimeMs" + maxRetransmitTimeMs + "\n"
+                      + "maxRetransmitTimeMs: " + maxRetransmitTimeMs + "\n"
                       + "maxRetransmits: " + maxRetransmits + "\n"
                       + "protocol: " + protocol + "\n"
                       + "negotiated: " + negotiated + "\n"
@@ -222,8 +222,6 @@ public class PeerConnectionClient {
     public final boolean sendAudio;
 
     public final boolean videoCallEnabled;
-    //public final boolean loopback;
-    //public final boolean tracing;
     public final int videoWidth;
     public final int videoHeight;
     public final int videoFps;
@@ -234,14 +232,11 @@ public class PeerConnectionClient {
     public final int audioStartBitrate;
     public final String audioCodec;
     public final boolean audioProcessing;
-    //public final boolean aecDump;
-    //public final boolean saveInputAudioToFile;
     public final boolean useOpenSLES;
     public final boolean disableBuiltInAEC;
     public final boolean disableBuiltInAGC;
     public final boolean disableBuiltInNS;
     public final boolean disableWebRtcAGCAndHPF;
-    //public final boolean enableRtcEventLog;
     private final DataChannelParameters dataChannelParameters;
 
     public PeerConnectionParameters(
@@ -296,10 +291,10 @@ public class PeerConnectionClient {
 
     public void debug() {
       Log.d("PeerConnectionParameter",
-          "receiveVideo" + receiveVideo + "\n"
-        + "sendVideo" + sendVideo + "\n"
-        + "receiveAudio" + receiveAudio + "\n"
-        + "sendAudio" + sendAudio + "\n"
+          "receiveVideo: " + receiveVideo + "\n"
+        + "sendVideo: " + sendVideo + "\n"
+        + "receiveAudio: " + receiveAudio + "\n"
+        + "sendAudio: " + sendAudio + "\n"
 
         + "videoCallEnabled: " + videoCallEnabled + "\n"
         + "videoWidth: " + videoWidth + "\n"

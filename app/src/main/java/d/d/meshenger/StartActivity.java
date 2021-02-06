@@ -207,6 +207,7 @@ public class StartActivity extends MeshengerActivity implements ServiceConnectio
 
         if (mac.isEmpty()) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setCancelable(false);
             builder.setTitle(R.string.setup_address_title);
             builder.setMessage(R.string.setup_address_message);
 
@@ -265,6 +266,7 @@ public class StartActivity extends MeshengerActivity implements ServiceConnectio
         });
 
         AlertDialog dialog = builder.create();
+        dialog.setCancelable(false);
         dialog.setOnShowListener((newDialog) -> {
             Button okButton = ((AlertDialog) newDialog).getButton(AlertDialog.BUTTON_POSITIVE);
             et.addTextChangedListener(new TextWatcher() {
@@ -318,6 +320,7 @@ public class StartActivity extends MeshengerActivity implements ServiceConnectio
     private void showDatabasePasswordDialog() {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_database_password);
+        dialog.setCancelable(false);
 
         EditText passwordEditText = dialog.findViewById(R.id.PasswordEditText);
         Button exitButton = dialog.findViewById(R.id.ExitButton);
