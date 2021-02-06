@@ -21,13 +21,19 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import org.webrtc.RendererCommon.ScalingType;
+
+import d.d.meshenger.Log;
 import d.d.meshenger.R;
 
 /**
  * Fragment for call control.
  */
 public class CallFragment extends Fragment {
-  private TextView contactView;
+  private static final String TAG = "CallFragment";
+  private TextView callNameView;
+  private TextView callStatusView;
+  private ImageButton disconnectButton;
+  private ImageButton connectButton;
   private ImageButton cameraSwitchButton;
   private ImageButton videoScalingButton;
   private ImageButton toggleMuteButton;
@@ -44,19 +50,36 @@ public class CallFragment extends Fragment {
     void onCallHangUp();
     void onCameraSwitch();
     void onVideoScalingSwitch(ScalingType scalingType);
-    void onVideoMirrorSwitch(boolean mirror);
+    void onVideoMirrorSwitch(boolean mirror); // added by me
     void onCaptureFormatChange(int width, int height, int framerate);
     boolean onToggleMic();
+
+    /*
+    void onSendVideo(boolean enable) // enable/disable video recording
+    void onSendAudio(boolean enable) // disable/enable audio recording
+    void onReceiveVideo(boolean enable) // disable/enable video accept (?)
+    void onReceiveAudio(boolean enable) // disable/enable audio accept (?)
+    void onFrontCamera(boolean enable)
+
+    // bitrate slider?
+
+    void onChangeCaptureSize(width, height)
+    void onChangeCaptureFPS(fps)
+    void 
+    */
   }
 
   @Override
   public View onCreateView(
       LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    Log.d(TAG, "onCreateView");
     View controlView = inflater.inflate(R.layout.fragment_call, container, false);
 
     // Create UI controls.
-    contactView = controlView.findViewById(R.id.contact_name_call);
-    ImageButton disconnectButton = controlView.findViewById(R.id.button_call_disconnect);
+    callNameView = controlView.findViewById(R.id.call_name);
+    callStatusView = controlView.findViewById(R.id.call_status);
+    disconnectButton = controlView.findViewById(R.id.button_call_disconnect);
+    connectButton = controlView.findViewById(R.id.button_call_connect);
     cameraSwitchButton = controlView.findViewById(R.id.button_call_switch_camera);
     videoScalingButton = controlView.findViewById(R.id.button_call_scaling_mode);
     toggleMuteButton = controlView.findViewById(R.id.button_call_toggle_mic);
@@ -66,6 +89,10 @@ public class CallFragment extends Fragment {
     // Add buttons click events.
     disconnectButton.setOnClickListener((View view) -> {
       callEvents.onCallHangUp();
+    });
+
+    connectButton.setOnClickListener((View view) -> {
+      //callEvents.onConnect(); onCallHangUp();
     });
 
     cameraSwitchButton.setOnClickListener((View view) -> {
@@ -100,14 +127,13 @@ public class CallFragment extends Fragment {
     Bundle args = getArguments();
     if (args != null) {
       String contactName = "contactName"; // args.getString(CallActivity.EXTRA_ROOMID);
-      contactView.setText(contactName);
+      callNameView.setText(contactName);
       videoCallEnabled = true; // args.getBoolean(CallActivity.EXTRA_VIDEO_CALL, true);
       captureSliderEnabled = videoCallEnabled && false; // args.getBoolean(CallActivity.EXTRA_VIDEO_CAPTUREQUALITYSLIDER_ENABLED, false);
     }
     if (!videoCallEnabled) {
       cameraSwitchButton.setVisibility(View.INVISIBLE);
     }
-
 /*
     if (captureSliderEnabled) {
       captureFormatSlider.setOnSeekBarChangeListener(
@@ -118,6 +144,23 @@ public class CallFragment extends Fragment {
     }
 */
   }
+
+/*
+  public void onIncomingCall() {
+    disconnectButton.setVisibility(View.VISIBLE);
+    connectButton.setVisibility(View.GONE);
+    //callNameView.setText();
+  }
+
+  public void onEstablishedCall() {
+    // ??
+  }
+
+  public void onOutgoingCall() {
+    disconnectButton.setVisibility(View.GONE);
+    connectButton.setVisibility(View.VISIBLE);
+  }
+*/
 
   // Replace with onAttach(Context) once we only support API level 23+.
   @SuppressWarnings("deprecation")

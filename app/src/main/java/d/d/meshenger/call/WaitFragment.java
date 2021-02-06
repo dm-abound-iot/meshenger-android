@@ -10,6 +10,7 @@
 
 package d.d.meshenger.call;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.media.AudioManager;
 import android.media.Ringtone;
@@ -36,7 +37,7 @@ import d.d.meshenger.R;
 import d.d.meshenger.Log;
 
 /**
- * Show "Calling..." screen and ring/vibrate phone for incoming calls.
+ * Show "Calling..." screen and ring/vibrate phone for incoming calls.Q
  */
 public class WaitFragment extends Fragment {
   private static final String TAG = "WaitFragment";
@@ -48,68 +49,95 @@ public class WaitFragment extends Fragment {
   private Vibrator vibrator;
   private Ringtone ringtone;
 
+  // move to CallActivity?
+  public interface OnCallEvents {
+    /*
+    void onDecline();
+    void onAccept();
+
+  
+
+    void onCallHangUp();
+    void onCameraSwitch();
+    void onVideoScalingSwitch(ScalingType scalingType);
+    void onVideoMirrorSwitch(boolean mirror); // added by me
+    void onCaptureFormatChange(int width, int height, int framerate);
+    boolean onToggleMic();
+    */
+  }
+
   @Override
-  public View onCreateView(
-      LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+  public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    Log.d(TAG, "onCreateView");
     View controlView = inflater.inflate(R.layout.fragment_wait, container, false);
 
+/*
     callAcceptIB = controlView.findViewById(R.id.callAccept);
     callDeclineIB = controlView.findViewById(R.id.callDecline);
     callNameTV = controlView.findViewById(R.id.callName);
     callStatusTV = controlView.findViewById(R.id.callStatus);
-
     callAcceptIB.setOnClickListener((View view) -> {
       // TODO
+      //listener.acceptCall();
     });
 
     callDeclineIB.setOnClickListener((View view) -> {
         // TODO
+        //listener.hangUp();
     });
-
+*/
     return controlView;
   }
 
   private void startRinging() {
-      Log.d(TAG, "startRinging");
-      int ringerMode = ((AudioManager) getActivity().getSystemService(AUDIO_SERVICE)).getRingerMode();
+    Log.d(TAG, "startRinging");
+    int ringerMode = ((AudioManager) getActivity().getSystemService(AUDIO_SERVICE)).getRingerMode();
 
-      if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
-          return;
-      }
+    if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
+      return;
+    }
 
-      vibrator = ((Vibrator) getActivity().getSystemService(VIBRATOR_SERVICE));
-      long[] pattern = {1500, 800, 800, 800};
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-          VibrationEffect vibe = VibrationEffect.createWaveform(pattern, 0);
-          vibrator.vibrate(vibe);
-      } else {
-          vibrator.vibrate(pattern, 0);
-      }
+    vibrator = ((Vibrator) getActivity().getSystemService(VIBRATOR_SERVICE));
+    long[] pattern = {1500, 800, 800, 800};
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+      VibrationEffect vibe = VibrationEffect.createWaveform(pattern, 0);
+      vibrator.vibrate(vibe);
+    } else {
+      vibrator.vibrate(pattern, 0);
+    }
 
-      if (ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
-          return;
-      }
+    if (ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
+      return;
+    }
 
-      ringtone = RingtoneManager.getRingtone(getActivity().getApplicationContext(), RingtoneManager.getActualDefaultRingtoneUri(getApplicationContext(), RingtoneManager.TYPE_RINGTONE));
-      ringtone.play();
+    ringtone = RingtoneManager.getRingtone(getActivity().getApplicationContext(), RingtoneManager.getActualDefaultRingtoneUri(getApplicationContext(), RingtoneManager.TYPE_RINGTONE));
+    ringtone.play();
   }
 
   private void stopRinging(){
-      Log.d(TAG, "stopRinging");
-      if (vibrator != null) {
-          vibrator.cancel();
-          vibrator = null;
-      }
+    Log.d(TAG, "stopRinging");
+    if (vibrator != null) {
+      vibrator.cancel();
+      vibrator = null;
+    }
 
-      if (ringtone != null){
-          ringtone.stop();
-          ringtone = null;
-      }
+    if (ringtone != null){
+      ringtone.stop();
+      ringtone = null;
+    }
   }
 
   @Override
   public void onStop() {
       stopRinging();
       super.onStop();
+  }
+
+  // Replace with onAttach(Context) once we only support API level 23+.
+  @SuppressWarnings("deprecation")
+  @Override
+  public void onAttach(Activity activity) {
+    super.onAttach(activity);
+    //callEvents = (OnCallEvents) activity;
   }
 }

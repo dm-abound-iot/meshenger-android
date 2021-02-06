@@ -96,6 +96,7 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         dialog.setContentView(R.layout.dialog_add_contact_pubkey_conflict);
 
         TextView contactTextView = dialog.findViewById(R.id.NameTextView);
+        dialog.setCancelable(false);
 
         Button abortButton = dialog.findViewById(R.id.AbortButton);
         Button replaceButton = dialog.findViewById(R.id.ReplaceButton);
@@ -125,6 +126,7 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
     private void showNameConflictDialog(Contact new_contact, Contact old_contact) {
         Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_add_contact_name_conflict);
+        dialog.setCancelable(false);
 
         EditText nameEditText = dialog.findViewById(R.id.NameEditText);
         Button abortButton = dialog.findViewById(R.id.AbortButton);
@@ -180,9 +182,11 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
 
     private void startManualInput() {
         barcodeView.pause();
-        AlertDialog.Builder b = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setCancelable(false);
+
         EditText et = new EditText(this);
-        b.setTitle(R.string.paste_invitation)
+        builder.setTitle(R.string.paste_invitation)
             .setPositiveButton(R.string.ok, (dialogInterface, i) -> {
                 try {
                     String data = et.getText().toString();
@@ -197,7 +201,7 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
                 barcodeView.resume();
             })
             .setView(et);
-        b.show();
+        builder.show();
     }
 
     @Override

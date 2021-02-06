@@ -6,7 +6,16 @@
     android:layout_height="match_parent">
 
     <TextView
-        android:id="@+id/contact_name_call"
+        android:id="@+id/call_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_above="@+id/call_status"
+        android:textSize="24sp"
+        android:layout_margin="8dp"/>
+
+    <TextView
+        android:id="@+id/call_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
@@ -23,6 +32,14 @@
            android:layout_centerHorizontal="true"
            android:layout_width="wrap_content"
            android:layout_height="wrap_content">
+
+       <ImageButton
+           android:id="@+id/button_call_connect"
+           android:background="@drawable/connect"
+           android:contentDescription="Connect Call"
+           android:layout_marginEnd="16dp"
+           android:layout_width="48dp"
+           android:layout_height="48dp"/>
 
        <ImageButton
            android:id="@+id/button_call_disconnect"

@@ -168,15 +168,18 @@ public class Contact implements Serializable {
             socket.connect(address, timeout);
             return socket;
         } catch (SocketTimeoutException e) {
+            Log.d(TAG, "SocketTimeoutException: " + e);
             // ignore
         } catch (ConnectException e) {
             // device is online, but does not listen on the given port
+            Log.d(TAG, "ConnectException: " + e); // probably "Connection refused"
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         if (socket != null) {
             try {
+                Log.d(TAG, "close socket()");
                 socket.close();
             } catch (Exception e) {
                 // ignore

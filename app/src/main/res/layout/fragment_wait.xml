@@ -16,7 +16,7 @@
             android:id="@+id/callName"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CallerName"
+            android:text="Unknown Caller"
             android:textColor="?attr/primaryTextColor"
             android:textSize="30dp" />
 
@@ -24,7 +24,7 @@
             android:id="@+id/callStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/call_connecting"
+            android:text="Calling..."
             android:textColor="?attr/secondaryTextColor"
             android:textSize="20dp" />
 
@@ -57,38 +57,6 @@
             android:padding="@dimen/call_button_image_padding"
             android:scaleType="fitXY"
             android:src="@drawable/baseline_phone_missed_black_48" />
-
-        <RelativeLayout
-            android:layout_width="@dimen/call_button_size"
-            android:layout_height="@dimen/call_button_size"
-            android:layout_toRightOf="@id/callDecline"
-            android:layout_marginLeft="40dp"
-            android:id="@+id/videoStreamSwitchLayout"
-            android:visibility="gone">
-
-            <ImageButton
-                android:id="@+id/videoStreamSwitch"
-                android:layout_width="@dimen/call_button_size"
-                android:layout_height="@dimen/call_button_size"
-                android:background="@drawable/accept_button_round"
-                android:padding="@dimen/call_button_image_padding"
-                android:scaleType="fitXY"
-                android:src="@drawable/baseline_camera_alt_black_48" />
-
-        </RelativeLayout>
-
-        <ImageButton
-            android:id="@+id/frontFacingSwitch"
-            android:layout_width="@dimen/call_button_size"
-            android:layout_height="@dimen/call_button_size"
-            android:layout_marginLeft="40dp"
-            android:layout_toRightOf="@id/videoStreamSwitch"
-            android:background="@drawable/accept_button_round"
-            android:padding="@dimen/call_button_image_padding"
-            android:scaleType="fitXY"
-            android:src="@drawable/baseline_switch_camera_black_48"
-            android:visibility="gone" />
-
 
     </LinearLayout>
 

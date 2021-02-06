@@ -18,6 +18,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -71,6 +72,8 @@ import org.webrtc.VideoSink;
 import d.d.meshenger.MainService;
 import d.d.meshenger.Settings;
 import d.d.meshenger.R;
+
+import static d.d.meshenger.call.DirectRTCClient.CallDirection.OUTGOING;
 
 /**
  * Activity for peer connection call setup, call waiting
@@ -131,16 +134,17 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   private boolean callControlFragmentVisible = true;
   private long callStartedTimeMs;
   private boolean micEnabled = true;
-  private static Intent mediaProjectionPermissionResultData;
-  private static int mediaProjectionPermissionResultCode;
+  private static Intent mediaProjectionPermissionResultData; // needed?
+  private static int mediaProjectionPermissionResultCode; // needed?
   // True if local view is in the fullscreen renderer.
   private boolean isSwappedFeeds;
 
   // Controls
   private CallFragment callFragment;
   private HudFragment hudFragment;
-  //private WaitFragment waitFragment;
   //private CpuMonitor cpuMonitor; //statsFragment
+  private EglBase eglBase; //temporary
+
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -164,6 +168,31 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     // Create UI controls.
     pipRenderer = findViewById(R.id.pip_video_view);
     fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
+    //fullscreenRenderer.setBackgroundColor(Color.parseColor("#00aacc"));
+
+/*
+    if (true) {
+      pipRenderer.setVisibility(View.GONE);
+      fullscreenRenderer.setBackgroundColor(Color.parseColor("#00aacc"));
+      waitFragment = new WaitFragment();
+      {
+        FragmentTransaction ft = getFragmentManager().beginTransaction();
+        ft.add(R.id.wait_fragment_container, waitFragment);
+        ft.commit();
+      }
+
+      //fullscreenRenderer.setOnClickListener((View view) -> {
+        Log.d(TAG, "show waitFragment");
+        FragmentTransaction ft = getFragmentManager().beginTransaction();
+        ft.show(waitFragment);
+        ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+        ft.commit();
+      //});
+      //pipRenderer.setVisibility(View.GONE);
+      //fullscreenRenderer.setVisibility(View.GONE);
+      return;
+    }
+*/
     callFragment = new CallFragment();
     hudFragment = new HudFragment();
     //waitFragment = new WaitFragment();
@@ -181,7 +210,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     remoteSinks.add(remoteProxyRenderer);
 
     final Intent intent = getIntent();
-    final EglBase eglBase = EglBase.create();
+    //final EglBase eglBase = EglBase.create();
+    eglBase = EglBase.create();
 
     // Create video renderers.
     pipRenderer.init(eglBase.getEglBaseContext(), null);
@@ -206,13 +236,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
       }
     }
 
-    //screencaptureEnabled = intent.getBooleanExtra(EXTRA_SCREENCAPTURE, false);
-    // If capturing format is not specified for screencapture, use screen resolution.
-    //if (screencaptureEnabled && videoWidth == 0 && videoHeight == 0) {
-      //DisplayMetrics displayMetrics = getDisplayMetrics();
-      int videoWidth = 0; //displayMetrics.widthPixels;
-      int videoHeight = 0; //displayMetrics.heightPixels;
-    //}
     DataChannelParameters dataChannelParameters = null;
     if (intent.getBooleanExtra("EXTRA_DATA_CHANNEL_ENABLED", true)) {
       dataChannelParameters = new DataChannelParameters(
@@ -231,10 +254,9 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
       settings.getSendVideo(),
       settings.getReceiveAudio(),
       settings.getSendAudio(),
-
-      true, // VIDEO_CALL
-      videoWidth,
-      videoHeight,
+      true, // VIDEO_CALL // TODO: remove
+      0, // VIDEO_WIDTH
+      0, // VIDEO_HEIGHT
       0, // VIDEO_FPS
       0, // VIDEO_BITRATE
       settings.getVideoCodec(),
@@ -265,43 +287,46 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     ft.add(R.id.hud_fragment_container, hudFragment);
     ft.commit();
 
-{
 // my addition
-  // PeerConnection is created later on and it generated the offer SDPObserver and PCObserver
-  String action = getIntent().getAction();
 
-  if (action.equals("ACTION_OUTGOING_CALL")) {
     appRtcClient = MainService.currentCall;
+
+    if (appRtcClient == null) {
+      disconnectWithErrorMessage("No connection expected!");
+      return;
+    }
+
     appRtcClient.setEventListener(this);
-  } else if (action.equals("ACTION_INCOMING_CALL")) {
-    appRtcClient = MainService.currentCall;
-    appRtcClient.setEventListener(this);
-  } else {
-    //TODO: exit?
-    Log.e(TAG, "invalid action: " + action);
-    finish();
-  }
-}
 
-/*
-  // CallFragment.OnCallEvents interface implementation.
-  @Override
-  public void onCallHangUp() {
-    disconnect();
-  }
-*/
+    switch (appRtcClient.getCallDirection()) {
+    case INCOMING:
+      Log.d(TAG, "Incoming call");
+      // TODO: use blockUnknown and Contact.isBlocked()
 
+      // Incoming Call, socket is set
+      if (MainService.instance.getSettings().getAutoAcceptCall()) {
+        startCall(); // calls appRtcClient.connectToRoom(); => starts connect thread()
+      } else {
+        // start ringing and wait for connect call
+        Log.d(TAG, "start ringing");
+        startCall(); //TODO: remove...
+      }
+      break;
+    case OUTGOING:
+      Log.d(TAG, "Outgoing call");
 
-
-    // Create peer connection client.
-    peerConnectionClient = new PeerConnectionClient(
-        getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
-
-    PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-    //options.disableNetworkMonitor = true; // from email by dante carvalho to fix connection in case of tethering
-    peerConnectionClient.createPeerConnectionFactory(options);
-
-    startCall();
+      // Outgoing Call, contact is set
+      if (MainService.instance.getSettings().getAutoConnectCall()) {
+        startCall(); // calls appRtcClient.connectToRoom(); => starts connect thread()
+      } else {
+        Log.d(TAG, "wait for explicit button call to start call");
+        // wait for explicit connect button press to start call
+      }
+      break;
+    default:
+      reportError("Invalid call direction!");
+      return;
+    }
   }
 
   @TargetApi(17)
@@ -473,13 +498,37 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     }
     ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
     ft.commit();
+
+/*
+    // TODO: make more elegant
+    if (appRtcClient.getCallDirection() == OUTGOING) {
+      callFragment.onOutgoingCall();
+    } else {
+      callFragment.onIncomingCall();
+    }
+*/
   }
 
   private void startCall() {
+    //if (peerConnectionClient != null) {
+    //  logAndToast("Call already started");
+    //  return;
+    //}
+
     if (appRtcClient == null) {
       Log.e(TAG, "AppRTC client is not allocated for a call.");
       return;
     }
+
+    // Create peer connection client.
+    peerConnectionClient = new PeerConnectionClient(
+        getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
+
+    PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+    //options.disableNetworkMonitor = true; // does not work! from email by dante carvalho to fix connection in case of tethering
+    peerConnectionClient.createPeerConnectionFactory(options);
+
+
     callStartedTimeMs = System.currentTimeMillis();
 
     // Start room connection.
