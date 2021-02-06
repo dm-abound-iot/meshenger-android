@@ -42,52 +42,57 @@ import d.d.meshenger.R;
  */
 public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChannelClient.TCPChannelEvents*/ {
   private static final String TAG = "DirectRTCClient";
-  //private static final int DEFAULT_PORT = 8888;
 
   private final ExecutorService executor;
   private AppRTCClient.SignalingEvents events;
   private final boolean isServer;
+  private final CallDirection callDirection;
   private Socket socket;
   private Contact contact;
   private final Object socketLock;
   private PrintWriter out;
 
   private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
+  public enum CallDirection {INCOMING, OUTGOING};
 
   // All alterations of the room state should be done from inside the looper thread.
   private ConnectionState roomState;
 
   public DirectRTCClient(Socket socket) {
-    this(socket, null);
+    this(socket, null, CallDirection.INCOMING);
   }
 
   public DirectRTCClient(Contact contact) {
-    this(null, contact);
-    Log.d(TAG, "Contact: name: " + contact.getName() + ", addresses: " + contact.getAddresses());
+    this(null, contact, CallDirection.OUTGOING);
   }
 
-  private DirectRTCClient(Socket socket, Contact contact) {
-    this.contact = contact;
+  private DirectRTCClient(Socket socket, Contact contact, CallDirection callDirection) {
     this.socket = socket;
+    this.contact = contact;
+    this.callDirection = callDirection;
     this.isServer = (socket != null);
     this.socketLock = new Object();
     this.executor = Executors.newSingleThreadExecutor();
     this.roomState = ConnectionState.NEW;
   }
 
+  public Contact getContact() {
+      return contact;
+  }
+
   public void setEventListener(SignalingEvents events) {
     this.events = events;
+  }
+
+  public CallDirection getCallDirection() {
+    return callDirection;
   }
 
   @Override
   public void run() {
     Log.d(TAG, "Listening thread started...");
 
-    // Receive connection to temporary variable first, so we don't block.
-    //Socket tempSocket = connect();
     BufferedReader in;
-
-    //Log.d(TAG, "TCP connection established.");
 
     // contact is only set for outgoing call
     if (contact != null && contact.getAddresses().isEmpty()) {
@@ -98,7 +103,10 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
     synchronized (socketLock) {
       if (!isServer) {
         Log.d(TAG, "Create outgoing socket contact.createSocket() (client)");
-        socket = contact.createSocket();
+        for (int i = 0; i < 5 && socket == null; i += 1) {
+          Log.d(TAG, "try number " + i);
+          socket = contact.createSocket();
+        }
       } else {
         Log.d(TAG, "Incoming socket already present (server).");
       }

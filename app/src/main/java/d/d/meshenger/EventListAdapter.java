@@ -15,6 +15,9 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 
+import static d.d.meshenger.call.DirectRTCClient.CallDirection.INCOMING;
+import static d.d.meshenger.call.DirectRTCClient.CallDirection.OUTGOING;
+
 
 class EventListAdapter extends ArrayAdapter<Event> {
     private LayoutInflater inflater;
@@ -88,25 +91,31 @@ class EventListAdapter extends ArrayAdapter<Event> {
         }
 
         ImageView type_iv = view.findViewById(R.id.call_type);
-        switch (event.type) {
-            case INCOMING_ACCEPTED:
-            case INCOMING_DECLINED:
-                type_iv.setImageResource(R.drawable.call_incoming);
-                break;
-            case INCOMING_UNKNOWN:
-            case INCOMING_MISSED:
-            case INCOMING_ERROR:
-                type_iv.setImageResource(R.drawable.call_incoming_missed);
-                break;
-            case OUTGOING_ACCEPTED:
-            case OUTGOING_DECLINED:
-                type_iv.setImageResource(R.drawable.call_outgoing);
-                break;
-            case OUTGOING_UNKNOWN:
-            case OUTGOING_MISSED:
-            case OUTGOING_ERROR:
-                type_iv.setImageResource(R.drawable.call_outgoing_missed);
-                break;
+
+        if (event.callDirection == INCOMING) {
+            switch (event.callType) {
+                case ACCEPTED:
+                case DECLINED:
+                    type_iv.setImageResource(R.drawable.call_incoming);
+                    break;
+                case MISSED:
+                case ERROR:
+                    type_iv.setImageResource(R.drawable.call_incoming_missed);
+                    break;
+            }
+        }
+
+        if (event.callDirection == OUTGOING) {
+            switch (event.callType) {
+                case ACCEPTED:
+                case DECLINED:
+                    type_iv.setImageResource(R.drawable.call_outgoing);
+                    break;
+                case MISSED:
+                case ERROR:
+                    type_iv.setImageResource(R.drawable.call_outgoing_missed);
+                    break;
+            }
         }
 
         TextView address_tv = view.findViewById(R.id.call_address);

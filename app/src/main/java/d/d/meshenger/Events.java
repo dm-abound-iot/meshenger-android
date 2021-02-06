@@ -20,6 +20,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import d.d.meshenger.call.DirectRTCClient;
+
 
 public class Events {
     private List<Event> events;
@@ -40,12 +42,13 @@ public class Events {
         events.clear();
     }
 
-    public void addEvent(Contact contact, Event.Type type) {
+    public void addEvent(Contact contact, DirectRTCClient.CallDirection callDirection, Event.CallType callType) {
         InetSocketAddress last_working = contact.getLastWorkingAddress();
         events.add(new Event(
             contact.getPublicKey(),
                 (last_working != null) ? last_working.getAddress() : null,
-            type
+            callDirection,
+            callType
         ));
         //LocalBroadcastManager.getInstance(this.service).sendBroadcast(new Intent("refresh_event_list"));
     }

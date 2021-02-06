@@ -79,7 +79,7 @@ import d.d.meshenger.R;
 public class CallActivity extends Activity implements DirectRTCClient.SignalingEvents,
                                                       PeerConnectionClient.PeerConnectionEvents,
                                                       CallFragment.OnCallEvents {
-  private static final String TAG = "CallRTCClient";
+  private static final String TAG = "CallActivity";
   private static final int CAPTURE_PERMISSION_REQUEST_CODE = 1;
 
   // List of mandatory application permissions.
@@ -123,7 +123,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   private VideoFileRenderer videoFileRenderer;
   private final List<VideoSink> remoteSinks = new ArrayList<>();
   private Toast logToast;
-  private boolean activityRunning;
+  private boolean activityRunning; // needed?
   @Nullable
   private PeerConnectionParameters peerConnectionParameters;
   private boolean connected;
