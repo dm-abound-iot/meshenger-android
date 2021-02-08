@@ -51,7 +51,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
 
     private final ExecutorService executor;
     private AppRTCClient.SignalingEvents events;
-    private final boolean isServer;
+    //private final boolean isServer;
     private final CallDirection callDirection;
     private Socket socket;
     private Contact contact;
@@ -76,7 +76,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         this.socket = socket;
         this.contact = contact;
         this.callDirection = callDirection;
-        this.isServer = (socket != null);
+        //this.isServer = (socket != null);
         this.socketLock = new Object();
         this.executor = Executors.newSingleThreadExecutor();
         this.roomState = ConnectionState.NEW;
@@ -122,163 +122,153 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
       return null;
     }
 
-    /*
-    * Create a connection to the contact.
-    * Try/Remember the last successful address.
-    */
-    private static Socket createClientSocket(Contact contact) {
-        Socket socket = null;
-        int connectionTimeout = 500;
+    @Override
+    public void run() {
+        Log.d(TAG, "Listening thread started...");
 
-        for (InetSocketAddress address : AddressUtils.getAllSocketAddresses(
-                contact.getAddresses(), contact.getLastWorkingAddress(), MainService.serverPort)) {
-            Log.d(TAG, "try address: '" + address.getAddress() + "', port: " + address.getPort());
-            socket = establishConnection(address, connectionTimeout);
-            if (socket != null) {
-                return socket;
+        BufferedReader in;
+
+        // contact is only set for outgoing call
+        if (contact != null && contact.getAddresses().isEmpty()) {
+          reportError("No addresses set for contact.");
+          return;
+        }
+
+        int connectionTimeout = 500; // milliseconds
+        synchronized (socketLock) {
+            if (callDirection == CallDirection.OUTGOING) {
+                Log.d(TAG, "Create outgoing socket");
+
+                for (InetSocketAddress address : AddressUtils.getAllSocketAddresses(
+                        contact.getAddresses(), contact.getLastWorkingAddress(), MainService.serverPort)) {
+                    Log.d(TAG, "try address: '" + address.getAddress() + "', port: " + address.getPort());
+                    socket = establishConnection(address, connectionTimeout);
+                    if (socket != null) {
+                       break;
+                    }
+                }
+            } else {
+                Log.d(TAG, "Socket already present.");
+            }
+
+            // Connecting failed, error has already been reported, just exit.
+            if (socket == null) {
+                reportError("Connection failed.");
+                return;
+            }
+
+            try {
+                out = new PrintWriter(
+                    new OutputStreamWriter(socket.getOutputStream(), Charset.forName("UTF-8")), true);
+                in = new BufferedReader(
+                    new InputStreamReader(socket.getInputStream(), Charset.forName("UTF-8")));
+            } catch (IOException e) {
+                reportError("Failed to open IO on rawSocket: " + e.getMessage());
+                return;
             }
         }
 
-        return null;
-    }
+        Log.v(TAG, "Execute onTCPConnected");
+        executor.execute(() -> {
+            if (callDirection == CallDirection.INCOMING) {
+                Log.v(TAG, "Run onTCPConnected (INCOMING)");
+            } else {
+                Log.v(TAG, "Run onTCPConnected (OUTGOING)");
+            }
+            /*eventListener.*/ onTCPConnected(/*isServer*/);
+        });
 
-  @Override
-  public void run() {
-    Log.d(TAG, "Listening thread started...");
+        while (true) {
+            final String message;
+            try {
+                message = in.readLine();
+            } catch (IOException e) {
+                synchronized (socketLock) {
+                    // If socket was closed, this is expected.
+                    if (socket == null) {
+                        break;
+                    }
+                }
 
-    BufferedReader in;
+                reportError("Failed to read from rawSocket: " + e.getMessage());
+                break;
+            }
 
-    // contact is only set for outgoing call
-    if (contact != null && contact.getAddresses().isEmpty()) {
-      reportError("No addresses set for contact.");
-      return;
-    }
+            // No data received, rawSocket probably closed.
+            if (message == null) {
+                break;
+            }
 
-    synchronized (socketLock) {
-      if (!isServer) {
-        Log.d(TAG, "Create outgoing socket contact.createSocket() (client)");
-        for (int i = 0; i < 5 && socket == null; i += 1) {
-          Log.d(TAG, "try number " + i);
-          socket = createClientSocket(contact);
-        }
-      } else {
-        Log.d(TAG, "Incoming socket already present (server).");
-      }
+            if (contact == null) {
+                // TODO: try to decrypt and set contact
+            } else {
+                // TODO: decrypt
+            }
 
-      // Connecting failed, error has already been reported, just exit.
-      if (socket == null) {
-        reportError("Connection failed.");
-        return;
-      }
+            // what if caller is unknown?
 
-      try {
-        out = new PrintWriter(
-            new OutputStreamWriter(socket.getOutputStream(), Charset.forName("UTF-8")), true);
-        in = new BufferedReader(
-            new InputStreamReader(socket.getInputStream(), Charset.forName("UTF-8")));
-      } catch (IOException e) {
-        reportError("Failed to open IO on rawSocket: " + e.getMessage());
-        return;
-      }
-    }
-
-    Log.v(TAG, "Execute onTCPConnected");
-    executor.execute(() -> {
-        Log.v(TAG, "Run onTCPConnected (isServer: " + isServer + ")");
-        /*eventListener.*/ onTCPConnected(isServer);
-    });
-
-    while (true) {
-      final String message;
-      try {
-        message = in.readLine();
-      } catch (IOException e) {
-        synchronized (socketLock) {
-          // If socket was closed, this is expected.
-          if (socket == null) {
-            break;
-          }
+            executor.execute(() -> {
+                Log.v(TAG, "Receive: " + message);
+                /*eventListener.*/onTCPMessage(message);
+            });
         }
 
-        reportError("Failed to read from rawSocket: " + e.getMessage());
-        break;
-      }
+        Log.d(TAG, "Receiving thread exiting...");
 
-      // No data received, rawSocket probably closed.
-      if (message == null) {
-        break;
-      }
-
-      if (contact == null) {
-        // TODO: try to decrypt and set contact
-      } else {
-        // TODO: decrypt
-      }
-
-      // what if caller is unknown?
-
-      executor.execute(() -> {
-        Log.v(TAG, "Receive: " + message);
-        /*eventListener.*/onTCPMessage(message);
-      });
+        // Close the rawSocket if it is still open.
+        disconnectSocket();
+        //disconnectFromRoom();
     }
 
-    Log.d(TAG, "Receiving thread exiting...");
+    /** Closes the rawSocket if it is still open. Also fires the onTCPClose event. */
 
-    // Close the rawSocket if it is still open.
-    disconnectSocket();
-    //disconnectFromRoom();
-  }
+    private void disconnectSocket() {
+        try {
+            synchronized (socketLock) {
+                if (socket != null) {
+                    socket.close();
+                    socket = null;
+                    out = null;
 
-  /** Closes the rawSocket if it is still open. Also fires the onTCPClose event. */
-  
-  private void disconnectSocket() {
-    try {
-      synchronized (socketLock) {
-        if (socket != null) {
-          socket.close();
-          socket = null;
-          out = null;
-
-          executor.execute(() -> {
-            /*eventListener.*/onTCPClose();
-          });
+                    executor.execute(() -> {
+                        /*eventListener.*/onTCPClose();
+                    });
+                }
+            }
+        } catch (IOException e) {
+            reportError("Failed to close rawSocket: " + e.getMessage());
         }
-      }
-    } catch (IOException e) {
-      reportError("Failed to close rawSocket: " + e.getMessage());
     }
-  }
 
-  /**
-   * Connects to the room, roomId in connectionsParameters is required. roomId must be a valid
-   * IP address matching IP_PATTERN.
-   */
+    /**
+    * Connects to the room, roomId in connectionsParameters is required. roomId must be a valid
+    * IP address matching IP_PATTERN.
+    */
 
-  @Override
-  public void connectToRoom(/*String address, int port*/) {
-    //this.address = address;
-    //this.port = port;
+    @Override
+    public void connectToRoom(/*String address, int port*/) {
+        //this.address = address;
+        //this.port = port;
 
-    executor.execute(() -> {
-      connectToRoomInternal();
-    });
-  }
+        executor.execute(() -> {
+          connectToRoomInternal();
+        });
+    }
 
-  @Override
-  public void disconnectFromRoom() {
-    executor.execute(() -> {
-      disconnectFromRoomInternal();
-    });
-  }
+    @Override
+    public void disconnectFromRoom() {
+        executor.execute(() -> {
+            disconnectFromRoomInternal();
+        });
+    }
 
-  /**
-   * Connects to the room.
-   *
-   * Runs on the looper thread.
-   */
-  private void connectToRoomInternal() {
-    this.roomState = ConnectionState.NEW;
+    /**
+    * Connects to the room.
+    *
+    * Runs on the looper thread.
+    */
+    private void connectToRoomInternal() {
+        this.roomState = ConnectionState.NEW;
 /*
     String endpoint = connectionParameters.roomId;
 
@@ -303,258 +293,239 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
       port = DEFAULT_PORT;
     }
 */
+        //tcpClient = MainService.currentCall; // my addition
+        //tcpClient = new TCPChannelClient.TCPSocketClient(executor, this /*, this.address, this.port*/ /*, DEFAULT_PORT*/);
+        //tcpClient.start();
 
-    //tcpClient = MainService.currentCall; // my addition
-    //tcpClient = new TCPChannelClient.TCPSocketClient(executor, this /*, this.address, this.port*/ /*, DEFAULT_PORT*/);
-    //tcpClient.start();
-
-    // start thread
-    this.start();
-  }
-
-  /**
-   * Disconnects from the room.
-   *
-   * Runs on the looper thread.
-   */
-  private void disconnectFromRoomInternal() {
-    roomState = ConnectionState.CLOSED;
-
-    //if (tcpClient != null) {
-      /*tcpClient.*/disconnectSocket();
-    //  tcpClient = null;
-    //}
-    executor.shutdown();
-  }
-
-  @Override
-  public void sendOfferSdp(final SessionDescription sdp) {
-    if (!isServer) {
-      Log.e(TAG, "we send offer as client?");
+        // start thread
+        this.start();
     }
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
-        if (roomState != ConnectionState.CONNECTED) {
-          reportError("Sending offer SDP in non connected state.");
-          return;
+
+    /**
+    * Disconnects from the room.
+    *
+    * Runs on the looper thread.
+    */
+    private void disconnectFromRoomInternal() {
+        roomState = ConnectionState.CLOSED;
+
+        //if (tcpClient != null) {
+        /*tcpClient.*/disconnectSocket();
+        //  tcpClient = null;
+        //}
+        executor.shutdown();
+    }
+
+    @Override
+    public void sendOfferSdp(final SessionDescription sdp) {
+        if (callDirection != CallDirection.INCOMING) {
+            Log.e(TAG, "we send offer as client?");
         }
-        JSONObject json = new JSONObject();
-        jsonPut(json, "sdp", sdp.description);
-        jsonPut(json, "type", "offer");
-        sendMessage(json.toString());
-      }
-    });
+        executor.execute(() -> {
+            if (roomState != ConnectionState.CONNECTED) {
+                reportError("Sending offer SDP in non connected state.");
+                return;
+            }
+            JSONObject json = new JSONObject();
+            jsonPut(json, "sdp", sdp.description);
+            jsonPut(json, "type", "offer");
+            sendMessage(json.toString());
+        });
+    }
+
+    @Override
+    public void sendAnswerSdp(final SessionDescription sdp) {
+        executor.execute(() -> {
+            JSONObject json = new JSONObject();
+            jsonPut(json, "sdp", sdp.description);
+            jsonPut(json, "type", "answer");
+            sendMessage(json.toString());
+        });
+    }
+
+    @Override
+    public void sendLocalIceCandidate(final IceCandidate candidate) {
+        executor.execute(() -> {
+            JSONObject json = new JSONObject();
+            jsonPut(json, "type", "candidate");
+            jsonPut(json, "label", candidate.sdpMLineIndex);
+            jsonPut(json, "id", candidate.sdpMid);
+            jsonPut(json, "candidate", candidate.sdp);
+
+            if (roomState != ConnectionState.CONNECTED) {
+                reportError("Sending ICE candidate in non connected state.");
+                return;
+            }
+            sendMessage(json.toString());
+        });
+    }
+
+    /** Send removed Ice candidates to the other participant. */
+    @Override
+    public void sendLocalIceCandidateRemovals(final IceCandidate[] candidates) {
+        executor.execute(() -> {
+            JSONObject json = new JSONObject();
+            jsonPut(json, "type", "remove-candidates");
+            JSONArray jsonArray = new JSONArray();
+            for (final IceCandidate candidate : candidates) {
+                jsonArray.put(toJsonCandidate(candidate));
+            }
+            jsonPut(json, "candidates", jsonArray);
+
+            if (roomState != ConnectionState.CONNECTED) {
+                reportError("Sending ICE candidate removals in non connected state.");
+                return;
+            }
+            sendMessage(json.toString());
+        });
+    }
+
+    // -------------------------------------------------------------------
+    // TCPChannelClient event handlers
+
+    /**
+    * If the client is the server side, this will trigger onConnectedToRoom.
+    */
+    //@Override
+    private void onTCPConnected(/*boolean isServer*/) {
+        if (callDirection == CallDirection.INCOMING) {
+            roomState = ConnectionState.CONNECTED;
+
+            SignalingParameters parameters = new SignalingParameters(
+                // Ice servers are not needed for direct connections.
+                new ArrayList<>(),
+                (callDirection == CallDirection.INCOMING), // Server side acts as the initiator on direct connections.
+                null, // clientId
+                null, // wssUrl
+                null, // wwsPostUrl
+                null, // offerSdp
+                null // iceCandidates
+            );
+            // call to CallActivity
+            events.onConnectedToRoom(parameters);
+        }
+    }
+
+    //@Override
+    private void onTCPMessage(String msg) {
+        //String msg = ""; // dummy
+        Log.d(TAG, "onTCPMessage: " + msg);
+        try {
+            JSONObject json = new JSONObject(msg);
+            String type = json.optString("type");
+
+            if (type.equals("candidate")) {
+                events.onRemoteIceCandidate(toJavaCandidate(json));
+            } else if (type.equals("remove-candidates")) {
+                JSONArray candidateArray = json.getJSONArray("candidates");
+                IceCandidate[] candidates = new IceCandidate[candidateArray.length()];
+                for (int i = 0; i < candidateArray.length(); ++i) {
+                    candidates[i] = toJavaCandidate(candidateArray.getJSONObject(i));
+                }
+                events.onRemoteIceCandidatesRemoved(candidates);
+            } else if (type.equals("answer")) {
+                if (callDirection != CallDirection.INCOMING) {
+                    Log.e(TAG, "Dang, we are the client but got an answer?");
+                }
+
+                SessionDescription sdp = new SessionDescription(
+                SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+                events.onRemoteDescription(sdp);
+            } else if (type.equals("offer")) {
+                SessionDescription sdp = new SessionDescription(
+                SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+
+                if (callDirection != CallDirection.OUTGOING) {
+                    Log.e(TAG, "Dang, we are the server but got an offer?");
+                }
+
+                SignalingParameters parameters = new SignalingParameters(
+                    // Ice servers are not needed for direct connections.
+                    new ArrayList<>(),
+                    false, // This code will only be run on the client side. So, we are not the initiator.
+                    null, // clientId
+                    null, // wssUrl
+                    null, // wssPostUrl
+                    sdp, // offerSdp
+                    null // iceCandidates
+                );
+                roomState = ConnectionState.CONNECTED;
+                // call to CallActivity
+                events.onConnectedToRoom(parameters);
+            } else {
+                reportError("Unexpected TCP message: " + msg);
+            }
+        } catch (JSONException e) {
+            reportError("TCP message JSON parsing error: " + e.toString());
+        }
+    }
+
+    //@Override
+    private void onTCPError(String description) {
+        reportError("TCP connection error: " + description);
+    }
+
+    //@Override
+    private void onTCPClose() {
+        events.onChannelClose();
+    }
+
+    // --------------------------------------------------------------------
+    // Helper functions.
+    private void reportError(final String errorMessage) {
+        Log.e(TAG, errorMessage);
+        executor.execute(() -> {
+            if (roomState != ConnectionState.ERROR) {
+                roomState = ConnectionState.ERROR;
+                events.onChannelError(errorMessage);
+            }
+        });
+    }
+
+    /**
+    * Sends a message on the socket. Should only be called on the executor thread.
+    */
+    private void send(String message) {
+        Log.v(TAG, "Send: " + message);
+
+        synchronized (socketLock) {
+            if (out == null) {
+                reportError("Sending data on closed socket.");
+                return;
+            }
+
+            out.write(message + "\n");
+            out.flush();
+        }
   }
 
-  @Override
-  public void sendAnswerSdp(final SessionDescription sdp) {
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
-        JSONObject json = new JSONObject();
-        jsonPut(json, "sdp", sdp.description);
-        jsonPut(json, "type", "answer");
-        sendMessage(json.toString());
-      }
-    });
-  }
+    private void sendMessage(final String message) {
+        executor.execute(() -> {
+            /*tcpClient.*/send(message);
+        });
+    }
 
-  @Override
-  public void sendLocalIceCandidate(final IceCandidate candidate) {
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
+    // Put a |key|->|value| mapping in |json|.
+    private static void jsonPut(JSONObject json, String key, Object value) {
+        try {
+            json.put(key, value);
+        } catch (JSONException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    // Converts a Java candidate to a JSONObject.
+    private static JSONObject toJsonCandidate(final IceCandidate candidate) {
         JSONObject json = new JSONObject();
-        jsonPut(json, "type", "candidate");
         jsonPut(json, "label", candidate.sdpMLineIndex);
         jsonPut(json, "id", candidate.sdpMid);
         jsonPut(json, "candidate", candidate.sdp);
-
-        if (roomState != ConnectionState.CONNECTED) {
-          reportError("Sending ICE candidate in non connected state.");
-          return;
-        }
-        sendMessage(json.toString());
-      }
-    });
-  }
-
-  /** Send removed Ice candidates to the other participant. */
-  @Override
-  public void sendLocalIceCandidateRemovals(final IceCandidate[] candidates) {
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
-        JSONObject json = new JSONObject();
-        jsonPut(json, "type", "remove-candidates");
-        JSONArray jsonArray = new JSONArray();
-        for (final IceCandidate candidate : candidates) {
-          jsonArray.put(toJsonCandidate(candidate));
-        }
-        jsonPut(json, "candidates", jsonArray);
-
-        if (roomState != ConnectionState.CONNECTED) {
-          reportError("Sending ICE candidate removals in non connected state.");
-          return;
-        }
-        sendMessage(json.toString());
-      }
-    });
-  }
-
-  // -------------------------------------------------------------------
-  // TCPChannelClient event handlers
-
-  /**
-   * If the client is the server side, this will trigger onConnectedToRoom.
-   */
-  //@Override
-  private void onTCPConnected(boolean isServer) {
-    if (isServer) {
-      roomState = ConnectionState.CONNECTED;
-
-      SignalingParameters parameters = new SignalingParameters(
-          // Ice servers are not needed for direct connections.
-          new ArrayList<>(),
-          isServer, // Server side acts as the initiator on direct connections.
-          null, // clientId
-          null, // wssUrl
-          null, // wwsPostUrl
-          null, // offerSdp
-          null // iceCandidates
-          );
-      // call to CallActivity
-      events.onConnectedToRoom(parameters);
+        return json;
     }
-  }
 
-  //@Override
-  private void onTCPMessage(String msg) {
-    //String msg = ""; // dummy
-    Log.d(TAG, "onTCPMessage: " + msg);
-    try {
-      JSONObject json = new JSONObject(msg);
-      String type = json.optString("type");
-
-      if (type.equals("candidate")) {
-        events.onRemoteIceCandidate(toJavaCandidate(json));
-      } else if (type.equals("remove-candidates")) {
-        JSONArray candidateArray = json.getJSONArray("candidates");
-        IceCandidate[] candidates = new IceCandidate[candidateArray.length()];
-        for (int i = 0; i < candidateArray.length(); ++i) {
-          candidates[i] = toJavaCandidate(candidateArray.getJSONObject(i));
-        }
-        events.onRemoteIceCandidatesRemoved(candidates);
-      } else if (type.equals("answer")) {
-          if (!isServer) {
-            Log.e(TAG, "Dang, we are the client but got an answer?");
-          }
-
-        SessionDescription sdp = new SessionDescription(
-            SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
-        events.onRemoteDescription(sdp);
-      } else if (type.equals("offer")) {
-        SessionDescription sdp = new SessionDescription(
-            SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
-
-        if (isServer) {
-          Log.e(TAG, "Dang, we are the server but got an offer?");
-        }
-
-        SignalingParameters parameters = new SignalingParameters(
-            // Ice servers are not needed for direct connections.
-            new ArrayList<>(),
-            false, // This code will only be run on the client side. So, we are not the initiator.
-            null, // clientId
-            null, // wssUrl
-            null, // wssPostUrl
-            sdp, // offerSdp
-            null // iceCandidates
-            );
-        roomState = ConnectionState.CONNECTED;
-        // call to CallActivity
-        events.onConnectedToRoom(parameters);
-      } else {
-        reportError("Unexpected TCP message: " + msg);
-      }
-    } catch (JSONException e) {
-      reportError("TCP message JSON parsing error: " + e.toString());
+    // Converts a JSON candidate to a Java object.
+    private static IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
+        return new IceCandidate(
+            json.getString("id"), json.getInt("label"), json.getString("candidate"));
     }
-  }
-
-  //@Override
-  private void onTCPError(String description) {
-    reportError("TCP connection error: " + description);
-  }
-
-  //@Override
-  private void onTCPClose() {
-    events.onChannelClose();
-  }
-
-  // --------------------------------------------------------------------
-  // Helper functions.
-  private void reportError(final String errorMessage) {
-    Log.e(TAG, errorMessage);
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
-        if (roomState != ConnectionState.ERROR) {
-          roomState = ConnectionState.ERROR;
-          events.onChannelError(errorMessage);
-        }
-      }
-    });
-  }
-
-  /**
-   * Sends a message on the socket. Should only be called on the executor thread.
-   */
-  private void send(String message) {
-    Log.v(TAG, "Send: " + message);
-
-    synchronized (socketLock) {
-      if (out == null) {
-        reportError("Sending data on closed socket.");
-        return;
-      }
-
-      out.write(message + "\n");
-      out.flush();
-    }
-  }
-
-  private void sendMessage(final String message) {
-    executor.execute(new Runnable() {
-      @Override
-      public void run() {
-        /*tcpClient.*/send(message);
-      }
-    });
-  }
-
-  // Put a |key|->|value| mapping in |json|.
-  private static void jsonPut(JSONObject json, String key, Object value) {
-    try {
-      json.put(key, value);
-    } catch (JSONException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  // Converts a Java candidate to a JSONObject.
-  private static JSONObject toJsonCandidate(final IceCandidate candidate) {
-    JSONObject json = new JSONObject();
-    jsonPut(json, "label", candidate.sdpMLineIndex);
-    jsonPut(json, "id", candidate.sdpMid);
-    jsonPut(json, "candidate", candidate.sdp);
-    return json;
-  }
-
-  // Converts a JSON candidate to a Java object.
-  private static IceCandidate toJavaCandidate(JSONObject json) throws JSONException {
-    return new IceCandidate(
-        json.getString("id"), json.getInt("label"), json.getString("candidate"));
-  }
 }
