@@ -94,7 +94,7 @@ class Utils {
     private static final Pattern NAME_PATTERN = Pattern.compile("[\\w _-]+");
 
     // check for a name that has no funny unicode characters to not let them look to much like other names
-    public static boolean isValidName(String name) {
+    public static boolean isValidContactName(String name) {
         if (name == null || name.length() == 0) {
             return false;
         }
@@ -134,6 +134,8 @@ class Utils {
         return data;
     }
 
+/*
+    // parse IPv6 address like [::]:12345
     public static InetSocketAddress parseInetSocketAddress(String addr, int defaultPort) {
         if (addr == null || addr.length() == 0) {
             return null;
@@ -161,6 +163,7 @@ class Utils {
             return null;
         }
     }
+*/
 
     public static String bytesToMacAddress(byte[] mac) {
         StringBuilder sb = new StringBuilder();
@@ -196,16 +199,16 @@ class Utils {
         return (mac[0] & 2) == 0;
     }
 
-    public static boolean isValidMAC(byte[] mac) {
+    private static boolean isHexChar(char c) {
+        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
+    }
+
+    public static boolean isMAC(byte[] mac) {
         // we ignore the first byte (dummy mac addresses have the "local" bit set - resulting in 0x02)
         return ((mac != null)
             && (mac.length == 6)
             && ((mac[1] != 0x0) && (mac[2] != 0x0) && (mac[3] != 0x0) && (mac[4] != 0x0) && (mac[5] != 0x0))
         );
-    }
-
-    private static boolean isHexChar(char c) {
-        return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') || (c >= 'A' && c <= 'F');
     }
 
     // check if a string is a MAC address (heuristic)
@@ -267,143 +270,6 @@ class Utils {
             || IPV6_HEX_COMPRESSED_PATTERN.matcher(address).matches();
     }
 
-    public static List<AddressEntry> collectAddresses() {
-        ArrayList<AddressEntry> addressList = new ArrayList<>();
-        try {
-            List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
-            for (NetworkInterface nif : all) {
-                byte[] mac = nif.getHardwareAddress();
-
-                if (nif.isLoopback()) {
-                    continue;
-                }
-
-                if (isValidMAC(mac)) {
-                    addressList.add(new AddressEntry(Utils.bytesToMacAddress(mac), nif.getName(), Utils.isMulticastMAC(mac)));
-                }
-
-                for (InterfaceAddress ia : nif.getInterfaceAddresses()) {
-                    InetAddress addr = ia.getAddress();
-                    if (addr.isLoopbackAddress()) {
-                        continue;
-                    }
-
-                    addressList.add(new AddressEntry(addr.getHostAddress(), nif.getName(), addr.isMulticastAddress()));
-                }
-            }
-        } catch (Exception ex) {
-            // ignore
-            log("error: " + ex.toString());
-        }
-
-        return addressList;
-    }
-
-    // list all IP/MAC addresses of running network interfaces - for debugging only
-    public static void printOwnAddresses() {
-        for (AddressEntry ae : collectAddresses()) {
-            log("Address: " + ae.address + " (" + ae.device + (ae.multicast ? ", multicast" : "") + ")");
-        }
-    }
-
-    // Check if the given MAC address is in the IPv6 address
-    public static byte[] getEUI64MAC(Inet6Address addr6) {
-        byte[] bytes = addr6.getAddress();
-        if (bytes[11] != ((byte) 0xFF) || bytes[12] != ((byte) 0xFE)) {
-            return null;
-        }
-
-        byte[] mac = new byte[6];
-        mac[0] = (byte) (bytes[8] ^ 2);
-        mac[1] = bytes[9];
-        mac[2] = bytes[10];
-        mac[3] = bytes[13];
-        mac[4] = bytes[14];
-        mac[5] = bytes[15];
-        return mac;
-    }
-
-    /*
-    * Replace the MAC address of an EUi64 scheme IPv6 address with another MAC address.
-    * E.g.: ("fe80::aaaa:aaff:faa:aaa", "bb:bb:bb:bb:bb:bb") => "fe80::9bbb:bbff:febb:bbbb"
-    */
-    private static Inet6Address createEUI64Address(Inet6Address addr6, byte[] mac) {
-        // addr6 is expected to be a EUI64 address
-        try {
-            byte[] bytes = addr6.getAddress();
-
-            bytes[8] = (byte) (mac[0] ^ 2);
-            bytes[9] = mac[1];
-            bytes[10] = mac[2];
-
-            // already set, but doesn't harm
-            bytes[11] = (byte) 0xFF;
-            bytes[12] = (byte) 0xFE;
-
-            bytes[13] = mac[3];
-            bytes[14] = mac[4];
-            bytes[15] = mac[5];
-
-            return Inet6Address.getByAddress(null, bytes, addr6.getScopeId());
-        } catch (UnknownHostException e) {
-            return null;
-        }
-    }
-
-    /*
-    * Iterate all device addresses, check if they conform to the EUI64 scheme.
-    * If yes, replace the MAC address in it with the supplied one and return that address.
-    * Also set the given port for those generated addresses.
-    */
-    public static List<InetSocketAddress> getAddressPermutations(String contact_mac, int port) {
-        byte[] contact_mac_bytes = Utils.macAddressToBytes(contact_mac);
-        ArrayList<InetSocketAddress> addrs = new ArrayList<InetSocketAddress>();
-        try {
-            List<NetworkInterface> all = Collections.list(NetworkInterface.getNetworkInterfaces());
-            for (NetworkInterface nif : all) {
-                if (nif.isLoopback() || nif.getName().equals("dummy0")) {
-                    continue;
-                }
-
-                for (InterfaceAddress ia : nif.getInterfaceAddresses()) {
-                    InetAddress addr = ia.getAddress();
-                    if (addr.isLoopbackAddress()) {
-                        continue;
-                    }
-
-                    if (addr instanceof Inet6Address) {
-                        Inet6Address addr6 = (Inet6Address) addr;
-                        byte[] extracted_mac = getEUI64MAC(addr6);
-                        if (extracted_mac != null && Arrays.equals(extracted_mac, nif.getHardwareAddress())) {
-                            // We found the interface MAC address in the IPv6 assigned to that interface in the EUI-64 scheme.
-                            // Now assume that the contact has an address with the same scheme.
-                            InetAddress new_addr = createEUI64Address(addr6, contact_mac_bytes);
-                            if (new_addr != null) {
-                                addrs.add(new InetSocketAddress(new_addr, port));
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return addrs;
-    }
-
-    // EUI-64 based address to MAC address
-    public static String getGeneralizedAddress(InetAddress address) {
-        if (address instanceof Inet6Address) {
-            // if the IPv6 address contains a MAC address, take that.
-            byte[] mac = Utils.getEUI64MAC((Inet6Address) address);
-            if (mac != null) {
-                return Utils.bytesToMacAddress(mac);
-            }
-        }
-        return address.getHostAddress();
-    }
-
     // write file to external storage
     public static void writeExternalFile(String filepath, byte[] data) throws IOException {
         File file = new File(filepath);
@@ -439,9 +305,5 @@ class Utils {
 
         fis.close();
         return buffer.toByteArray();
-    }
-
-    private static void log(String s) {
-        Log.d(Utils.class.getSimpleName(), s);
     }
 }

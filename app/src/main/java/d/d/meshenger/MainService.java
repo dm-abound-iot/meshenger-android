@@ -467,7 +467,6 @@ public class MainService extends Service implements Runnable {
                     if (this.currentCall == null) {
                         this.currentCall = new DirectRTCClient(socket);
                         Intent intent = new Intent(this, CallActivity.class);
-                        intent.setAction("ACTION_INCOMING_CALL");
                         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         startActivity(intent);
                         Thread.sleep(1000);

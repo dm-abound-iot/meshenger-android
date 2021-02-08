@@ -279,7 +279,7 @@ public class SettingsActivity extends MeshengerActivity {
             .setView(et)
             .setPositiveButton(R.string.ok, (dialogInterface, i) -> {
                 String new_username = et.getText().toString().trim();
-                if (Utils.isValidName(new_username)) {
+                if (Utils.isValidContactName(new_username)) {
                     settings.setUsername(new_username);
                     MainService.instance.saveDatabase();
                     initViews();

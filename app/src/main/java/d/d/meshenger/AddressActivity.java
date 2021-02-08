@@ -20,6 +20,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -28,20 +29,20 @@ import java.util.List;
 
 public class AddressActivity extends MeshengerActivity {
     private static final String TAG = "AddressActivity";
-    Spinner storedAddressSpinner;
-    Spinner systemAddressSpinner;
-    Button pickStoredAddressButton;
-    Button pickSystemAddressButton;
-    EditText addressEditText;
-    Button addButton;
-    Button removeButton;
-    Button saveButton;
-    Button abortButton;
+    private Spinner storedAddressSpinner;
+    private Spinner systemAddressSpinner;
+    private Button pickStoredAddressButton;
+    private Button pickSystemAddressButton;
+    private EditText addressEditText;
+    private Button addButton;
+    private Button removeButton;
+    private Button saveButton;
+    private Button abortButton;
 
-    List<AddressEntry> systemAddressList;
-    List<AddressEntry> storedAddressList;
-    AddressListAdapter storedAddressListAdapter;
-    AddressListAdapter systemAddressListAdapter;
+    private List<AddressEntry> systemAddressList;
+    private List<AddressEntry> storedAddressList;
+    private AddressListAdapter storedAddressListAdapter;
+    private AddressListAdapter systemAddressListAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,7 +61,7 @@ public class AddressActivity extends MeshengerActivity {
         saveButton = findViewById(R.id.SaveButton);
         abortButton = findViewById(R.id.AbortButton);
 
-        systemAddressList = Utils.collectAddresses();
+        systemAddressList = AddressUtils.getOwnAddresses();
         storedAddressList = new ArrayList<>();
         storedAddressListAdapter = new AddressListAdapter(this, Color.parseColor("#39b300")); //dark green
         systemAddressListAdapter = new AddressListAdapter(this, Color.parseColor("#b3b7b2")); //light grey
@@ -158,39 +159,8 @@ public class AddressActivity extends MeshengerActivity {
         }
 
         updateSpinners();
-
-        //bindService();
-    }
-/*
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        unbindService(this);
     }
 
-    private void bindService() {
-        // ask MainService to get us the binder object
-        Intent serviceIntent = new Intent(this, MainService.class);
-        bindService(serviceIntent, this, Service.BIND_AUTO_CREATE);
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        this.binder = (MainService.MainBinder) iBinder;
-
-        // get from settings
-        for (String address : this.binder.getSettings().getAddresses()) {
-            this.storedAddressList.add(parseAddress(address));
-        }
-
-        updateSpinners();
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-        this.binder = null;
-    }
-*/
     public class AddressListAdapter extends BaseAdapter {
         private final Activity context;
         private final int markColor;
@@ -322,7 +292,7 @@ public class AddressActivity extends MeshengerActivity {
      * Create AddressEntry from address string.
      * Do not perform any domain lookup
     */
-    AddressEntry parseAddress(String address) {
+    private AddressEntry parseAddress(String address) {
         // instead of parsing, lookup in known addresses first
         AddressEntry ae = AddressEntry.findAddressEntry(systemAddressList, address);
         if (ae != null) {
@@ -336,7 +306,7 @@ public class AddressActivity extends MeshengerActivity {
             // IP address
             boolean mc = false;
             try {
-                mc = Utils.parseInetSocketAddress(address, 0).getAddress().isMulticastAddress();
+                mc = InetSocketAddress.createUnresolved(address, 0).getAddress().isMulticastAddress();
             } catch (Exception e) {
                 // ignore
             }

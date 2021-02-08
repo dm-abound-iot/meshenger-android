@@ -19,11 +19,15 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.Toast;
 
+import java.net.Inet6Address;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import d.d.meshenger.call.CallActivity;
+import d.d.meshenger.call.DirectRTCClient;
 
 import static android.os.Looper.getMainLooper;
 
@@ -126,7 +130,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
     }
 
     private void showAddDialog(Event event) {
-        log("showAddDialog");
+        Log.d(TAG, "showAddDialog");
 
         Dialog dialog = new Dialog(this.mainActivity);
         dialog.setContentView(R.layout.dialog_add_contact);
@@ -148,7 +152,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
                 return;
             }
 
-            String address = Utils.getGeneralizedAddress(event.address);
+            String address = getGeneralizedAddress(event.address);
             MainService.instance.getContacts().addContact(
                 new Contact(name, event.pubKey, Arrays.asList(address))
             );
@@ -168,22 +172,30 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
         dialog.show();
     }
 
-    @Override
-    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-        log("onItemClick");
-        Event event = this.eventListAdapter.getItem(i);
-
-        String address = Utils.getGeneralizedAddress(event.address);
-        Contact contact = new Contact("", event.pubKey, Arrays.asList(address));
-        contact.setLastWorkingAddress(Utils.parseInetSocketAddress(address, MainService.serverPort));
-
-        Intent intent = new Intent(this.mainActivity, CallActivity.class);
-        intent.setAction("ACTION_OUTGOING_CALL");
-        intent.putExtra("EXTRA_CONTACT", contact);
-        startActivity(intent);
+    // EUI-64 based address to MAC address
+    private static String getGeneralizedAddress(InetAddress address) {
+        if (address instanceof Inet6Address) {
+            // if the IPv6 address contains a MAC address, take that.
+            byte[] mac = AddressUtils.getEUI64MAC((Inet6Address) address);
+            if (mac != null) {
+                return Utils.bytesToMacAddress(mac);
+            }
+        }
+        return address.getHostAddress();
     }
 
-    private static void log(String s) {
-        Log.d(EventListFragment.class.getSimpleName(), s);
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+        Log.d(TAG, "onItemClick");
+        Event event = this.eventListAdapter.getItem(i);
+
+        String address = getGeneralizedAddress(event.address);
+        Contact contact = new Contact("Unknown Caller123", event.pubKey, Arrays.asList(address));
+        contact.setLastWorkingAddress(InetSocketAddress.createUnresolved(address, MainService.serverPort));
+        MainService.currentCall = new DirectRTCClient(contact);
+
+        Intent intent = new Intent(this.mainActivity, CallActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(intent);
     }
 }

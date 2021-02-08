@@ -13,7 +13,10 @@ package d.d.meshenger.call;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +35,10 @@ import org.json.JSONObject;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.PeerConnection;
+
+import d.d.meshenger.AddressUtils;
 import d.d.meshenger.Contact;
+import d.d.meshenger.MainService;
 import d.d.meshenger.Settings;
 import d.d.meshenger.R;
 /**
@@ -41,52 +47,100 @@ import d.d.meshenger.R;
  * connections.
  */
 public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChannelClient.TCPChannelEvents*/ {
-  private static final String TAG = "DirectRTCClient";
+    private static final String TAG = "DirectRTCClient";
 
-  private final ExecutorService executor;
-  private AppRTCClient.SignalingEvents events;
-  private final boolean isServer;
-  private final CallDirection callDirection;
-  private Socket socket;
-  private Contact contact;
-  private final Object socketLock;
-  private PrintWriter out;
+    private final ExecutorService executor;
+    private AppRTCClient.SignalingEvents events;
+    private final boolean isServer;
+    private final CallDirection callDirection;
+    private Socket socket;
+    private Contact contact;
+    private final Object socketLock;
+    private PrintWriter out;
 
-  private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
-  public enum CallDirection {INCOMING, OUTGOING};
+    private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
+    public enum CallDirection { INCOMING, OUTGOING };
 
-  // All alterations of the room state should be done from inside the looper thread.
-  private ConnectionState roomState;
+    // All alterations of the room state should be done from inside the looper thread.
+    private ConnectionState roomState;
 
-  public DirectRTCClient(Socket socket) {
-    this(socket, null, CallDirection.INCOMING);
-  }
+    public DirectRTCClient(Socket socket) {
+        this(socket, null, CallDirection.INCOMING);
+    }
 
-  public DirectRTCClient(Contact contact) {
-    this(null, contact, CallDirection.OUTGOING);
-  }
+    public DirectRTCClient(Contact contact) {
+        this(null, contact, CallDirection.OUTGOING);
+    }
 
-  private DirectRTCClient(Socket socket, Contact contact, CallDirection callDirection) {
-    this.socket = socket;
-    this.contact = contact;
-    this.callDirection = callDirection;
-    this.isServer = (socket != null);
-    this.socketLock = new Object();
-    this.executor = Executors.newSingleThreadExecutor();
-    this.roomState = ConnectionState.NEW;
-  }
+    private DirectRTCClient(Socket socket, Contact contact, CallDirection callDirection) {
+        this.socket = socket;
+        this.contact = contact;
+        this.callDirection = callDirection;
+        this.isServer = (socket != null);
+        this.socketLock = new Object();
+        this.executor = Executors.newSingleThreadExecutor();
+        this.roomState = ConnectionState.NEW;
+    }
 
-  public Contact getContact() {
-      return contact;
-  }
+    public Contact getContact() {
+        return contact;
+    }
 
-  public void setEventListener(SignalingEvents events) {
-    this.events = events;
-  }
+    public void setEventListener(SignalingEvents events) {
+        this.events = events;
+    }
 
-  public CallDirection getCallDirection() {
-    return callDirection;
-  }
+    public CallDirection getCallDirection() {
+        return callDirection;
+    }
+
+    private static Socket establishConnection(InetSocketAddress address, int timeout) {
+        Socket socket = new Socket();
+        try {
+            // timeout to establish connection
+            socket.connect(address, timeout);
+            return socket;
+        } catch (SocketTimeoutException e) {
+            Log.d(TAG, "SocketTimeoutException: " + e);
+            // ignore
+        } catch (ConnectException e) {
+            // device is online, but does not listen on the given port
+            Log.d(TAG, "ConnectException: " + e); // probably "Connection refused"
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        if (socket != null) {
+            try {
+                Log.d(TAG, "close socket()");
+                socket.close();
+            } catch (Exception e) {
+            // ignore
+            }
+        }
+
+      return null;
+    }
+
+    /*
+    * Create a connection to the contact.
+    * Try/Remember the last successful address.
+    */
+    private static Socket createClientSocket(Contact contact) {
+        Socket socket = null;
+        int connectionTimeout = 500;
+
+        for (InetSocketAddress address : AddressUtils.getAllSocketAddresses(
+                contact.getAddresses(), contact.getLastWorkingAddress(), MainService.serverPort)) {
+            Log.d(TAG, "try address: '" + address.getAddress() + "', port: " + address.getPort());
+            socket = establishConnection(address, connectionTimeout);
+            if (socket != null) {
+                return socket;
+            }
+        }
+
+        return null;
+    }
 
   @Override
   public void run() {
@@ -105,7 +159,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         Log.d(TAG, "Create outgoing socket contact.createSocket() (client)");
         for (int i = 0; i < 5 && socket == null; i += 1) {
           Log.d(TAG, "try number " + i);
-          socket = contact.createSocket();
+          socket = createClientSocket(contact);
         }
       } else {
         Log.d(TAG, "Incoming socket already present (server).");

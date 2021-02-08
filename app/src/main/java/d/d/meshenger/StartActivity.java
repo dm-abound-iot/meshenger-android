@@ -192,8 +192,9 @@ public class StartActivity extends MeshengerActivity implements ServiceConnectio
         }
     }
 
+    // for the database initialization
     private String getMacOfDevice(String device) {
-        for (AddressEntry ae : Utils.collectAddresses()) {
+        for (AddressEntry ae : AddressUtils.getOwnAddresses()) {
             // only MAC addresses
             if (ae.device.equals("wlan0") && Utils.isMAC(ae.address)) {
                 return ae.address;
@@ -302,7 +303,7 @@ public class StartActivity extends MeshengerActivity implements ServiceConnectio
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener((View v) -> {
             imm.toggleSoftInput(0, InputMethodManager.HIDE_IMPLICIT_ONLY);
             String username = et.getText().toString();
-            if (Utils.isValidName(username)) {
+            if (Utils.isValidContactName(username)) {
                 MainService.instance.getSettings().setUsername(username);
                 MainService.instance.saveDatabase();
 

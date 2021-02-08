@@ -86,61 +86,6 @@ public class Contact implements Serializable {
         this.addresses.add(address);
     }
 
-    private InetSocketAddress[] getAllSocketAddresses() {
-        Set<InetSocketAddress> list = new HashSet<>();
-
-        if (last_working_address != null) {
-            list.add(last_working_address);
-        }
-
-        for (String address : addresses) {
-            try {
-                if (Utils.isMAC(address)) {
-                    list.addAll(Utils.getAddressPermutations(address, MainService.serverPort));
-                } else {
-                    // also resolves domains
-                    list.add(Utils.parseInetSocketAddress(address, MainService.serverPort));
-                }
-            } catch (Exception e) {
-                Log.e(TAG, "invalid address: " + address);
-                e.printStackTrace();
-            }
-        }
-
-        for (InetSocketAddress address : list) {
-            Log.d(TAG, "got address: " + address);
-        }
-
-        // sort addresses, prefer last successful address and IPv6
-        InetSocketAddress[] addresses = list.toArray(new InetSocketAddress[0]);
-        Arrays.sort(addresses, new Comparator<InetSocketAddress>() {
-            private int addressValue(InetAddress addr) {
-                if (last_working_address != null && last_working_address.getAddress() == addr) {
-                    return 100;
-                }
-                if (addr instanceof Inet6Address) {
-                    Inet6Address addr6 = (Inet6Address) addr;
-                    if (addr6.isAnyLocalAddress()) {
-                        return 50;
-                    }
-                    return 30;
-                }
-                if (addr instanceof Inet4Address) {
-                    Inet4Address addr4 = (Inet4Address) addr;
-                    return 20;
-                }
-                return 0;
-            }
-            @Override
-            public int compare(InetSocketAddress lhs, InetSocketAddress rhs) {
-                // -1 - less than, 1 - greater than, 0 - equal, all inversed for descending
-                return addressValue(lhs.getAddress()) - addressValue(rhs.getAddress());
-            }
-        });
-
-        return addresses;
-    }
-
     public byte[] getPublicKey() {
         return pubkey;
     }
@@ -161,54 +106,8 @@ public class Contact implements Serializable {
         this.blocked = blocked;
     }
 
-    private static Socket establishConnection(InetSocketAddress address, int timeout) {
-        Socket socket = new Socket();
-        try {
-            // timeout to establish connection
-            socket.connect(address, timeout);
-            return socket;
-        } catch (SocketTimeoutException e) {
-            Log.d(TAG, "SocketTimeoutException: " + e);
-            // ignore
-        } catch (ConnectException e) {
-            // device is online, but does not listen on the given port
-            Log.d(TAG, "ConnectException: " + e); // probably "Connection refused"
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        if (socket != null) {
-            try {
-                Log.d(TAG, "close socket()");
-                socket.close();
-            } catch (Exception e) {
-                // ignore
-            }
-        }
-
-        return null;
-    }
-
-    /*
-    * Create a connection to the contact.
-    * Try/Remember the last successful address.
-    */
-    public Socket createSocket() {
-        Socket socket = null;
-        int connectionTimeout = 500;
-
-        for (InetSocketAddress address : this.getAllSocketAddresses()) {
-            Log.d(TAG, "try address: '" + address.getAddress() + "', port: " + address.getPort());
-            socket = this.establishConnection(address, connectionTimeout);
-            if (socket != null) {
-                return socket;
-            }
-        }
-
-        return null;
-    }
-
-    // set good address to try first next time
+    // set good address to try first next time,
+    // this is not stored in the database
     public void setLastWorkingAddress(InetSocketAddress address) {
         Log.d(TAG, "setLatestWorkingAddress: " + address);
         this.last_working_address = address;
@@ -243,7 +142,7 @@ public class Contact implements Serializable {
         contact.name = object.getString("name");
         contact.pubkey = Utils.hexStringToByteArray(object.getString("public_key"));
 
-        if (!Utils.isValidName(contact.name)) {
+        if (!Utils.isValidContactName(contact.name)) {
             throw new JSONException("Invalid Name.");
         }
 
