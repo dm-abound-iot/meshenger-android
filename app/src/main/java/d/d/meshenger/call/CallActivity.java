@@ -250,10 +250,10 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     }
     Settings settings = MainService.instance.getSettings();
     peerConnectionParameters = new PeerConnectionParameters(
-      settings.getReceiveVideo(),
-      settings.getSendVideo(),
-      settings.getReceiveAudio(),
-      settings.getSendAudio(),
+      settings.getPlayVideo(),
+      settings.getRecordVideo(),
+      settings.getPlayAudio(),
+      settings.getRecordAudio(),
       true, // VIDEO_CALL // TODO: remove
       0, // VIDEO_WIDTH
       0, // VIDEO_HEIGHT
@@ -370,7 +370,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     final String[] deviceNames = enumerator.getDeviceNames();
 
     // First, try to find front facing camera
-    Logging.d(TAG, "Looking for front facing cameras.");
+    Log.d(TAG, "Looking for front facing cameras.");
     for (String deviceName : deviceNames) {
       if (enumerator.isFrontFacing(deviceName)) {
         Logging.d(TAG, "Creating front facing camera capturer.");
@@ -546,8 +546,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
       // This method will be called each time the number of available audio
       // devices has changed.
       @Override
-      public void onAudioDeviceChanged(
-          AudioDevice audioDevice, Set<AudioDevice> availableAudioDevices) {
+      public void onAudioDeviceChanged(AudioDevice audioDevice, Set<AudioDevice> availableAudioDevices) {
         onAudioManagerDevicesChanged(audioDevice, availableAudioDevices);
       }
     });

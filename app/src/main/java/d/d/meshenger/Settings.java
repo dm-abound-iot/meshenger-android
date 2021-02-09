@@ -28,10 +28,10 @@ public class Settings {
      * "expert"   => show all settings
      */
     private String settingsMode;
-    private boolean sendVideo;
-    private boolean receiveVideo;
-    private boolean sendAudio;
-    private boolean receiveAudio;
+    private boolean recordVideo;
+    private boolean playVideo;
+    private boolean recordAudio;
+    private boolean playAudio;
     /*
      * autoAcceptCall:
      *
@@ -82,10 +82,10 @@ public class Settings {
         this.nightMode = false;
         this.blockUnknown = false;
         this.settingsMode = "basic";
-        this.sendVideo = true;
-        this.receiveVideo = true;
-        this.sendAudio = true;
-        this.receiveAudio = true;
+        this.recordVideo = true;
+        this.playVideo = true;
+        this.recordAudio = true;
+        this.playAudio = true;
         this.autoAcceptCall = false;
         this.autoConnectCall = true;
         this.audioProcessing = true;
@@ -145,36 +145,36 @@ public class Settings {
         this.settingsMode = settingsMode;
     }
 
-    public boolean getSendVideo() {
-        return sendVideo;
+    public boolean getRecordVideo() {
+        return recordVideo;
     }
 
-    public void setSendVideo(boolean sendVideo) {
-        this.sendVideo = sendVideo;
+    public void setRecordVideo(boolean recordVideo) {
+        this.recordVideo = recordVideo;
     }
 
-    public boolean getReceiveVideo() {
-        return receiveVideo;
+    public boolean getPlayVideo() {
+        return playVideo;
     }
 
-    public void setReceiveVideo(boolean receiveVideo) {
-        this.receiveVideo = receiveVideo;
+    public void setPlayVideo(boolean playVideo) {
+        this.playVideo = playVideo;
     }
 
-    public boolean getSendAudio() {
-        return sendAudio;
+    public boolean getRecordAudio() {
+        return recordAudio;
     }
 
-    public void setSendAudio(boolean sendAudio) {
-        this.sendAudio = sendAudio;
+    public void setRecordAudio(boolean recordAudio) {
+        this.recordAudio = recordAudio;
     }
 
-    public boolean getReceiveAudio() {
-        return receiveAudio;
+    public boolean getPlayAudio() {
+        return playAudio;
     }
 
-    public void setReceiveAudio(boolean receiveAudio) {
-        this.receiveAudio = receiveAudio;
+    public void setPlayAudio(boolean playAudio) {
+        this.playAudio = playAudio;
     }
 
     public boolean getAutoAcceptCall() {
@@ -267,10 +267,10 @@ public class Settings {
         s.nightMode = obj.getBoolean("night_mode");
         s.blockUnknown = obj.getBoolean("block_unknown");
         s.settingsMode = obj.getString("settings_mode");
-        s.sendVideo = obj.getBoolean("send_video");
-        s.receiveVideo = obj.getBoolean("receive_video");
-        s.sendAudio = obj.getBoolean("send_audio");
-        s.receiveAudio = obj.getBoolean("receive_audio");
+        s.recordVideo = obj.getBoolean("record_video");
+        s.playVideo = obj.getBoolean("play_video");
+        s.recordAudio = obj.getBoolean("record_audio");
+        s.playAudio = obj.getBoolean("play_audio");
         s.autoAcceptCall = obj.getBoolean("auto_accept_call");
         s.autoConnectCall = obj.getBoolean("auto_connect_call");
         s.audioProcessing = obj.getBoolean("audio_processing");
@@ -300,10 +300,10 @@ public class Settings {
         obj.put("night_mode", s.nightMode);
         obj.put("block_unknown", s.blockUnknown);
         obj.put("settings_mode", s.settingsMode);
-        obj.put("send_video", s.sendVideo);
-        obj.put("receive_video", s.receiveVideo);
-        obj.put("send_audio", s.sendAudio);
-        obj.put("receive_audio", s.receiveAudio);
+        obj.put("record_video", s.recordVideo);
+        obj.put("play_video", s.playVideo);
+        obj.put("record_audio", s.recordAudio);
+        obj.put("play_audio", s.playAudio);
         obj.put("auto_accept_call", s.autoAcceptCall);
         obj.put("auto_connect_call", s.autoConnectCall);
         obj.put("audio_processing", s.audioProcessing);

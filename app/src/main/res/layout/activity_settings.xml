@@ -296,7 +296,7 @@
                 </LinearLayout>
 
                 <RelativeLayout
-                    android:id="@+id/sendAudioLayout"
+                    android:id="@+id/recordAudioLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp">
@@ -320,7 +320,7 @@
                 </RelativeLayout>
 
                 <RelativeLayout
-                    android:id="@+id/receiveAudioLayout"
+                    android:id="@+id/playAudioLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp">
@@ -333,7 +333,7 @@
                         android:textColor="?attr/primaryTextColor" />
 
                     <CheckBox
-                        android:id="@+id/checkBoxReceiveAudio"
+                        android:id="@+id/checkBoxPlayAudio"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentTop="true"
@@ -344,7 +344,7 @@
                 </RelativeLayout>
 
                 <RelativeLayout
-                    android:id="@+id/sendVideoLayout"
+                    android:id="@+id/recordVideoLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp">
@@ -357,7 +357,7 @@
                         android:textColor="?attr/primaryTextColor" />
 
                     <CheckBox
-                        android:id="@+id/checkBoxSendVideo"
+                        android:id="@+id/checkBoxRecordVideo"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentTop="true"
@@ -368,7 +368,7 @@
                 </RelativeLayout>
 
                 <RelativeLayout
-                    android:id="@+id/receiveVideoLayout"
+                    android:id="@+id/playVideoLayout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp">
@@ -381,7 +381,7 @@
                         android:textColor="?attr/primaryTextColor" />
 
                     <CheckBox
-                        android:id="@+id/checkBoxReceiveVideo"
+                        android:id="@+id/checkBoxPlayVideo"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_alignParentTop="true"

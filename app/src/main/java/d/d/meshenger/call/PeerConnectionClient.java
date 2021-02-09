@@ -216,10 +216,10 @@ public class PeerConnectionClient {
    */
   public static class PeerConnectionParameters {
     // my own settings
-    public final boolean receiveVideo;
-    public final boolean sendVideo;
-    public final boolean receiveAudio;
-    public final boolean sendAudio;
+    public boolean play_video;
+    public boolean record_video;
+    public boolean play_audio;
+    public boolean record_audio;
 
     public final boolean videoCallEnabled;
     public final int videoWidth;
@@ -240,10 +240,10 @@ public class PeerConnectionClient {
     private final DataChannelParameters dataChannelParameters;
 
     public PeerConnectionParameters(
-        boolean receiveVideo,
-        boolean sendVideo,
-        boolean receiveAudio,
-        boolean sendAudio,
+        boolean play_video,
+        boolean record_video,
+        boolean play_audio,
+        boolean record_audio,
 
         boolean videoCallEnabled,
         int videoWidth,
@@ -263,10 +263,10 @@ public class PeerConnectionClient {
         boolean disableWebRtcAGCAndHPF,
         DataChannelParameters dataChannelParameters) {
 
-      this.receiveVideo = receiveVideo;
-      this.sendVideo = sendVideo;
-      this.receiveAudio = receiveAudio;
-      this.sendAudio = sendAudio;
+      this.play_video = play_video;
+      this.record_video = record_video;
+      this.play_audio = play_audio;
+      this.record_audio = record_audio;
 
       // TODO: replace this one!
       this.videoCallEnabled = videoCallEnabled;
@@ -291,10 +291,10 @@ public class PeerConnectionClient {
 
     public void debug() {
       Log.d("PeerConnectionParameter",
-          "receiveVideo: " + receiveVideo + "\n"
-        + "sendVideo: " + sendVideo + "\n"
-        + "receiveAudio: " + receiveAudio + "\n"
-        + "sendAudio: " + sendAudio + "\n"
+          "playVideo: " + play_video + "\n"
+        + "recordVideo: " + record_video + "\n"
+        + "playAudio: " + play_audio + "\n"
+        + "recordAudio: " + record_audio + "\n"
 
         + "videoCallEnabled: " + videoCallEnabled + "\n"
         + "videoWidth: " + videoWidth + "\n"
@@ -633,11 +633,10 @@ public class PeerConnectionClient {
     }
     // Create SDP constraints.
     sdpMediaConstraints = new MediaConstraints();
-    sdpMediaConstraints.mandatory.add(
-        new MediaConstraints.KeyValuePair(
-          "OfferToReceiveAudio", Boolean.toString(peerConnectionParameters.receiveAudio))); //"true")); 
     sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
-        "OfferToReceiveVideo", Boolean.toString(peerConnectionParameters.receiveVideo))); // isVideoCallEnabled())));
+        "OfferToReceiveAudio", Boolean.toString(peerConnectionParameters.play_audio))); //"true"));
+    sdpMediaConstraints.mandatory.add(new MediaConstraints.KeyValuePair(
+        "OfferToReceiveVideo", Boolean.toString(peerConnectionParameters.play_video))); // isVideoCallEnabled())));
   }
 
   private void createPeerConnectionInternal() {

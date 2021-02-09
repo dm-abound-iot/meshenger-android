@@ -109,7 +109,6 @@ public class Contact implements Serializable {
     // set good address to try first next time,
     // this is not stored in the database
     public void setLastWorkingAddress(InetSocketAddress address) {
-        Log.d(TAG, "setLatestWorkingAddress: " + address);
         this.last_working_address = address;
     }
 

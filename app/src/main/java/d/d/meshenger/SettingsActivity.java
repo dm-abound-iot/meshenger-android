@@ -122,39 +122,39 @@ public class SettingsActivity extends MeshengerActivity {
             SettingsActivity.this.recreate();
         });
 
-        boolean sendAudio = settings.getSendAudio();
-        CheckBox sendAudioCB = findViewById(R.id.checkBoxSendAudio);
-        sendAudioCB.setChecked(sendAudio);
-        sendAudioCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+        boolean recordAudio = settings.getRecordAudio();
+        CheckBox recordAudioCB = findViewById(R.id.checkBoxSendAudio);
+        recordAudioCB.setChecked(recordAudio);
+        recordAudioCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            settings.setSendAudio(isChecked);
+            settings.setRecordAudio(isChecked);
             MainService.instance.saveDatabase();
         });
 
-        boolean receiveAudio = settings.getReceiveAudio();
-        CheckBox receiveAudioCB = findViewById(R.id.checkBoxReceiveAudio);
-        receiveAudioCB.setChecked(receiveAudio);
-        receiveAudioCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+        boolean playAudio = settings.getPlayAudio();
+        CheckBox playAudioCB = findViewById(R.id.checkBoxPlayAudio);
+        playAudioCB.setChecked(playAudio);
+        playAudioCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            settings.setReceiveAudio(isChecked);
+            settings.setPlayAudio(isChecked);
             MainService.instance.saveDatabase();
         });
 
-        boolean sendVideo = settings.getSendVideo();
-        CheckBox sendVideoCB = findViewById(R.id.checkBoxSendVideo);
-        sendVideoCB.setChecked(sendVideo);
-        sendVideoCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+        boolean recordVideo = settings.getRecordVideo();
+        CheckBox recordVideoCB = findViewById(R.id.checkBoxRecordVideo);
+        recordVideoCB.setChecked(recordVideo);
+        recordVideoCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            settings.setSendVideo(isChecked);
+            settings.setRecordVideo(isChecked);
             MainService.instance.saveDatabase();
         });
 
-        boolean receiveVideo = settings.getReceiveVideo();
-        CheckBox receiveVideoCB = findViewById(R.id.checkBoxReceiveVideo);
-        receiveVideoCB.setChecked(receiveVideo);
-        receiveVideoCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
+        boolean playVideo = settings.getPlayVideo();
+        CheckBox playVideoCB = findViewById(R.id.checkBoxPlayVideo);
+        playVideoCB.setChecked(playVideo);
+        playVideoCB.setOnCheckedChangeListener((compoundButton, isChecked) -> {
             // save value
-            settings.setReceiveVideo(isChecked);
+            settings.setPlayVideo(isChecked);
             MainService.instance.saveDatabase();
         });
 

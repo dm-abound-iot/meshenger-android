@@ -419,7 +419,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
             } else if (type.equals("remove-candidates")) {
                 JSONArray candidateArray = json.getJSONArray("candidates");
                 IceCandidate[] candidates = new IceCandidate[candidateArray.length()];
-                for (int i = 0; i < candidateArray.length(); ++i) {
+                for (int i = 0; i < candidateArray.length(); i += 1) {
                     candidates[i] = toJavaCandidate(candidateArray.getJSONObject(i));
                 }
                 events.onRemoteIceCandidatesRemoved(candidates);

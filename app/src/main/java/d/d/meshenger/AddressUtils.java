@@ -36,16 +36,13 @@ public class AddressUtils {
         for (String address : initial_addresses) {
             try {
                 if (Utils.isMAC(address)) {
-                    List<InetSocketAddress> a1 = getAddressPermutations(address, port);
                     // use own addresses as template
-                    address_set.addAll(a1);
+                    address_set.addAll(getAddressPermutations(address, port));
                     // from neighbor table
-                    List<InetSocketAddress> a2 = getAddressesFromNeighborTable(address, port);
-                    address_set.addAll(a2);
+                    address_set.addAll(getAddressesFromNeighborTable(address, port));
                 } else {
                     // parse address
                     address_set.add(InetSocketAddress.createUnresolved(address, port));
-                    //address_set.add(Utils.parseInetSocketAddress(address, port));
                 }
             } catch (Exception e) {
                 Log.e(TAG, "invalid address: " + address);

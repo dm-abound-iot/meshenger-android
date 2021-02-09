@@ -55,10 +55,10 @@ public class CallFragment extends Fragment {
     boolean onToggleMic();
 
     /*
-    void onSendVideo(boolean enable) // enable/disable video recording
+    void onRecordVideo(boolean enable) // enable/disable video recording
     void onSendAudio(boolean enable) // disable/enable audio recording
-    void onReceiveVideo(boolean enable) // disable/enable video accept (?)
-    void onReceiveAudio(boolean enable) // disable/enable audio accept (?)
+    void onPlayVideo(boolean enable) // disable/enable video accept (?)
+    void onPlayAudio(boolean enable) // disable/enable audio accept (?)
     void onFrontCamera(boolean enable)
 
     // bitrate slider?
