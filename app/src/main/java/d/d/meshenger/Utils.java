@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 
-class Utils {
+public class Utils {
 
     public static boolean hasPermission(Activity activity, String permission) {
         return (ContextCompat.checkSelfPermission(activity, permission) == PackageManager.PERMISSION_GRANTED);

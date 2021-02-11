@@ -43,11 +43,15 @@ public class CallFragment extends Fragment {
   private ScalingType scalingType;
   private boolean videoCallEnabled = true;
 
+  String callNameText = "";
+  String callStatusText = "";
+
   /**
    * Call control interface for container activity.
    */
   public interface OnCallEvents {
     void onCallHangUp();
+    void onCallAccept();
     void onCameraSwitch();
     void onVideoScalingSwitch(ScalingType scalingType);
     void onVideoMirrorSwitch(boolean mirror); // added by me
@@ -68,6 +72,7 @@ public class CallFragment extends Fragment {
     void 
     */
   }
+  boolean mirror = true;
 
   @Override
   public View onCreateView(
@@ -92,11 +97,16 @@ public class CallFragment extends Fragment {
     });
 
     connectButton.setOnClickListener((View view) -> {
-      //callEvents.onConnect(); onCallHangUp();
+      callEvents.onCallAccept();
     });
 
     cameraSwitchButton.setOnClickListener((View view) -> {
       callEvents.onCameraSwitch();
+
+      // TODO: rework an TODO
+      mirror = !mirror;
+      callEvents.onVideoMirrorSwitch(mirror);
+      //vieData.capture->SetRotateCapturedFrames(cameraId, 270
     });
 
     videoScalingButton.setOnClickListener((View view) -> {
@@ -119,18 +129,37 @@ public class CallFragment extends Fragment {
     return controlView;
   }
 
+  public void setContactName(String name) {
+    callNameText = name;
+  }
+
+  public void setCallStatus(String status) {
+    /*
+    <string name="call_connecting">Calling...</string>
+    <string name="call_connected">Connected.</string>
+    <string name="call_denied">Declined</string>
+    <string name="call_ringing">Ringing...</string>
+    <string name="call_ended">Call Ended</string>
+    <string name="call_error">Error</string>
+    */
+    callStatusText = status;
+  }
+
   @Override
   public void onStart() {
     super.onStart();
+    Log.d(TAG, "onStart()");
 
     boolean captureSliderEnabled = false;
-    Bundle args = getArguments();
-    if (args != null) {
-      String contactName = "contactName"; // args.getString(CallActivity.EXTRA_ROOMID);
-      callNameView.setText(contactName);
+    //Bundle args = getArguments();
+    //if (args != null) {
+      //String contactName = "contactName"; // args.getString(CallActivity.EXTRA_ROOMID);
+    callNameView.setText(this.callNameText);
+    callStatusView.setText(this.callStatusText);
+
       videoCallEnabled = true; // args.getBoolean(CallActivity.EXTRA_VIDEO_CALL, true);
-      captureSliderEnabled = videoCallEnabled && false; // args.getBoolean(CallActivity.EXTRA_VIDEO_CAPTUREQUALITYSLIDER_ENABLED, false);
-    }
+    //  captureSliderEnabled = videoCallEnabled && false; // args.getBoolean(CallActivity.EXTRA_VIDEO_CAPTUREQUALITYSLIDER_ENABLED, false);
+    //}
     if (!videoCallEnabled) {
       cameraSwitchButton.setVisibility(View.INVISIBLE);
     }

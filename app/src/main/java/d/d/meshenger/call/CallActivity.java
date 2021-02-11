@@ -10,6 +10,7 @@
 
 package d.d.meshenger.call;
 
+import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -19,6 +20,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.PixelFormat;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -30,10 +32,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatDelegate;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
@@ -44,6 +50,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import d.d.meshenger.MeshengerActivity;
+import d.d.meshenger.Utils;
 import d.d.meshenger.call.AppRTCAudioManager.AudioDevice;
 import d.d.meshenger.call.AppRTCAudioManager.AudioManagerEvents;
 //import d.d.meshenger.AppRTCClient.RoomConnectionParameters;
@@ -79,11 +88,17 @@ import static d.d.meshenger.call.DirectRTCClient.CallDirection.OUTGOING;
  * Activity for peer connection call setup, call waiting
  * and call view.
  */
-public class CallActivity extends Activity implements DirectRTCClient.SignalingEvents,
+public class CallActivity extends MeshengerActivity implements DirectRTCClient.SignalingEvents,
                                                       PeerConnectionClient.PeerConnectionEvents,
                                                       CallFragment.OnCallEvents {
   private static final String TAG = "CallActivity";
-  private static final int CAPTURE_PERMISSION_REQUEST_CODE = 1;
+  //private static final int CAPTURE_PERMISSION_REQUEST_CODE = 1;
+
+  // TODO: use
+  private static final int INTERNET_PERMISSION_REQUEST_CODE = 2;
+  private static final int RECORD_AUDIO_PERMISSION_REQUEST_CODE = 3;
+  private static final int MODIFY_AUDIO_SETTINGS_PERMISSION_REQUEST_CODE = 4;
+  private static final int CAMERA_PERMISSION_REQUEST_CODE = 5;
 
   // List of mandatory application permissions.
   private static final String[] MANDATORY_PERMISSIONS = {"android.permission.MODIFY_AUDIO_SETTINGS",
@@ -134,8 +149,6 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   private boolean callControlFragmentVisible = true;
   private long callStartedTimeMs;
   private boolean micEnabled = true;
-  private static Intent mediaProjectionPermissionResultData; // needed?
-  private static int mediaProjectionPermissionResultCode; // needed?
   // True if local view is in the fullscreen renderer.
   private boolean isSwappedFeeds;
 
@@ -145,6 +158,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   //private CpuMonitor cpuMonitor; //statsFragment
   private EglBase eglBase; //temporary
 
+  private Vibrator vibrator;
+  private Ringtone ringtone;
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -170,32 +185,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     fullscreenRenderer = findViewById(R.id.fullscreen_video_view);
     //fullscreenRenderer.setBackgroundColor(Color.parseColor("#00aacc"));
 
-/*
-    if (true) {
-      pipRenderer.setVisibility(View.GONE);
-      fullscreenRenderer.setBackgroundColor(Color.parseColor("#00aacc"));
-      waitFragment = new WaitFragment();
-      {
-        FragmentTransaction ft = getFragmentManager().beginTransaction();
-        ft.add(R.id.wait_fragment_container, waitFragment);
-        ft.commit();
-      }
-
-      //fullscreenRenderer.setOnClickListener((View view) -> {
-        Log.d(TAG, "show waitFragment");
-        FragmentTransaction ft = getFragmentManager().beginTransaction();
-        ft.show(waitFragment);
-        ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
-        ft.commit();
-      //});
-      //pipRenderer.setVisibility(View.GONE);
-      //fullscreenRenderer.setVisibility(View.GONE);
-      return;
-    }
-*/
     callFragment = new CallFragment();
     hudFragment = new HudFragment();
-    //waitFragment = new WaitFragment();
 
     // Show/hide call control fragment on view click.
     fullscreenRenderer.setOnClickListener((View view) -> {
@@ -223,18 +214,11 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     pipRenderer.setZOrderMediaOverlay(true);
     pipRenderer.setEnableHardwareScaler(true /* enabled */);
     fullscreenRenderer.setEnableHardwareScaler(false /* enabled */);
-    // Start with local feed in fullscreen and swap it to the pip when the call is connected.
-    setSwappedFeeds(true /* isSwappedFeeds */);
 
-    // Check for mandatory permissions.
-    for (String permission : MANDATORY_PERMISSIONS) {
-      if (checkCallingOrSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
-        logAndToast("Permission " + permission + " is not granted");
-        setResult(RESULT_CANCELED);
-        finish();
-        return;
-      }
-    }
+{
+  fullscreenRenderer.setVisibility(View.INVISIBLE);
+  pipRenderer.setVisibility(View.INVISIBLE);
+}
 
     DataChannelParameters dataChannelParameters = null;
     if (intent.getBooleanExtra("EXTRA_DATA_CHANNEL_ENABLED", true)) {
@@ -274,6 +258,22 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     );
     peerConnectionParameters.debug();
 
+    // TODO: move into startCall!
+    // so we can check permission over and over...
+    checkPermissions(peerConnectionParameters);
+
+/*
+   // Check for mandatory permissions.
+    for (String permission : MANDATORY_PERMISSIONS) {
+      if (checkCallingOrSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
+        logAndToast("Permission " + permission + " is not granted");
+        setResult(RESULT_CANCELED);
+        finish();
+        return;
+      }
+    }
+*/
+
 /*
     // Create CPU monitor
     if (CpuMonitor.isSupported()) {
@@ -300,7 +300,8 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
 
     switch (appRtcClient.getCallDirection()) {
     case INCOMING:
-      Log.d(TAG, "Incoming call");
+        callFragment.setCallStatus(getResources().getString(R.string.call_connecting));
+        Log.d(TAG, "Incoming call");
       // TODO: use blockUnknown and Contact.isBlocked()
 
       // Incoming Call, socket is set
@@ -309,10 +310,13 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
       } else {
         // start ringing and wait for connect call
         Log.d(TAG, "start ringing");
-        startCall(); //TODO: remove...
+        startRinging();
+        //fullscreenRenderer.setBackgroundColor(Color.parseColor("#00aacc"));
+        //startCall(); //TODO: remove...
       }
       break;
     case OUTGOING:
+      callFragment.setCallStatus(getResources().getString(R.string.call_ringing));
       Log.d(TAG, "Outgoing call");
 
       // Outgoing Call, contact is set
@@ -329,13 +333,35 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     }
   }
 
-  @TargetApi(17)
-  private DisplayMetrics getDisplayMetrics() {
-    DisplayMetrics displayMetrics = new DisplayMetrics();
-    WindowManager windowManager =
-        (WindowManager) getApplication().getSystemService(Context.WINDOW_SERVICE);
-    windowManager.getDefaultDisplay().getRealMetrics(displayMetrics);
-    return displayMetrics;
+  private void checkPermissions(PeerConnectionParameters peerConnectionParameters) {
+      Log.d(TAG, "checkPermissions");
+
+      if (peerConnectionParameters.recordAudio) {
+          if (!Utils.hasPermission(this, Manifest.permission.RECORD_AUDIO)) {
+              ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_PERMISSION_REQUEST_CODE);
+              return;
+          }
+      }
+
+      if (peerConnectionParameters.playAudio) {
+          if (!Utils.hasPermission(this, Manifest.permission.MODIFY_AUDIO_SETTINGS)) {
+              ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.MODIFY_AUDIO_SETTINGS}, MODIFY_AUDIO_SETTINGS_PERMISSION_REQUEST_CODE);
+              return;
+          }
+      }
+
+      if (peerConnectionParameters.recordVideo) {
+          if (!Utils.hasPermission(this, Manifest.permission.CAMERA)) {
+              ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
+              return;
+          }
+      }
+
+      // required!
+      if (!Utils.hasPermission(this, Manifest.permission.INTERNET)) {
+          ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, INTERNET_PERMISSION_REQUEST_CODE);
+          return;
+      }
   }
 
   @TargetApi(19)
@@ -347,15 +373,92 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
     return flags;
   }
 
-  // we first started to ask for permission
-  // if successfull => start call
-  @Override
-  public void onActivityResult(int requestCode, int resultCode, Intent data) {
-    if (requestCode == CAPTURE_PERMISSION_REQUEST_CODE) {
-      mediaProjectionPermissionResultCode = resultCode;
-      mediaProjectionPermissionResultData = data;
-      startCall();
+  private void startRinging() {
+    Log.d(TAG, "startRinging");
+    int ringerMode = ((AudioManager) getSystemService(AUDIO_SERVICE)).getRingerMode();
+
+    if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
+      return;
     }
+
+    if (vibrator == null) {
+      vibrator = ((Vibrator) getSystemService(VIBRATOR_SERVICE));
+    }
+
+    long[] pattern = {1500, 800, 800, 800};
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+      VibrationEffect vibe = VibrationEffect.createWaveform(pattern, 0);
+      vibrator.vibrate(vibe);
+    } else {
+      vibrator.vibrate(pattern, 0);
+    }
+
+    if (ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
+      return;
+    }
+
+    if (ringtone == null) {
+      ringtone = RingtoneManager.getRingtone(getApplicationContext(), RingtoneManager.getActualDefaultRingtoneUri(getApplicationContext(), RingtoneManager.TYPE_RINGTONE));
+    }
+    ringtone.play();
+  }
+
+  private void stopRinging(){
+    Log.d(TAG, "stopRinging");
+    if (vibrator != null) {
+      vibrator.cancel();
+      vibrator = null;
+    }
+
+    if (ringtone != null){
+      ringtone.stop();
+      ringtone = null;
+    }
+  }
+
+//onPause is called before, onResume afterwards
+  // TODO: need to apply changed permissions
+  @Override
+  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+      super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
+      if (grantResults.length == 0) {
+        // permission request was aborted / interrupted
+        return;
+      }
+
+      switch (requestCode) {
+          case RECORD_AUDIO_PERMISSION_REQUEST_CODE:
+              if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                  Toast.makeText(this, "Microphone disabled", Toast.LENGTH_LONG).show();
+                  peerConnectionParameters.recordAudio = false;
+              }
+              startCall();
+          case MODIFY_AUDIO_SETTINGS_PERMISSION_REQUEST_CODE:
+              if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                  Toast.makeText(this, "Audio disabled", Toast.LENGTH_LONG).show();
+                peerConnectionParameters.playAudio = false;
+              }
+              startCall();
+              break;
+          case CAMERA_PERMISSION_REQUEST_CODE:
+              if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                  Toast.makeText(this, "Camera disabled", Toast.LENGTH_LONG).show();
+                peerConnectionParameters.recordVideo = false;
+              }
+              startCall();
+              break;
+          case INTERNET_PERMISSION_REQUEST_CODE:
+              if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+                  Toast.makeText(this, "Internet access required", Toast.LENGTH_LONG).show();
+                  disconnect();
+                  //setResult(RESULT_CANCELED);
+                  //finish();
+              }
+              break;
+          default:
+              reportError("Unknown permission request code: " + requestCode);
+      }
   }
 
   private boolean useCamera2() {
@@ -442,7 +545,14 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   // CallFragment.OnCallEvents interface implementation.
   @Override
   public void onCallHangUp() {
+    Log.d(TAG, "onCallHangUp");
     disconnect();
+  }
+
+  @Override
+  public void onCallAccept() {
+    Log.d(TAG, "onCallAccept");
+    startCall();
   }
 
   @Override
@@ -510,24 +620,31 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   }
 
   private void startCall() {
-    //if (peerConnectionClient != null) {
-    //  logAndToast("Call already started");
-    //  return;
-    //}
+    if (peerConnectionClient != null) {
+      logAndToast("Call already started");
+      return;
+    }
 
     if (appRtcClient == null) {
       Log.e(TAG, "AppRTC client is not allocated for a call.");
       return;
     }
 
-    // Create peer connection client.
-    peerConnectionClient = new PeerConnectionClient(
-        getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
+    // Start with local feed in fullscreen and swap it to the pip when the call is connected.
+    setSwappedFeeds(true /* isSwappedFeeds */);
 
-    PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-    //options.disableNetworkMonitor = true; // does not work! from email by dante carvalho to fix connection in case of tethering
-    peerConnectionClient.createPeerConnectionFactory(options);
+    fullscreenRenderer.setVisibility(View.VISIBLE);
+    pipRenderer.setVisibility(View.VISIBLE);
 
+    {
+      // Create peer connection client.
+      peerConnectionClient = new PeerConnectionClient(
+          getApplicationContext(), eglBase, peerConnectionParameters, CallActivity.this);
+
+      PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+      //options.disableNetworkMonitor = true; // does not work! from email by dante carvalho to fix connection in case of tethering
+      peerConnectionClient.createPeerConnectionFactory(options);
+    }
 
     callStartedTimeMs = System.currentTimeMillis();
 
@@ -554,12 +671,17 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
 
   // Should be called from UI thread
   private void callConnected() {
-    final long delta = System.currentTimeMillis() - callStartedTimeMs;
-    Log.i(TAG, "Call connected: delay=" + delta + "ms");
-    if (peerConnectionClient == null || isError) {
-      Log.w(TAG, "Call is connected in closed or error state");
-      return;
+      stopRinging();
+
+      final long delta = System.currentTimeMillis() - callStartedTimeMs;
+      Log.i(TAG, "Call connected: delay=" + delta + "ms");
+      if (peerConnectionClient == null || isError) {
+        Log.w(TAG, "Call is connected in closed or error state");
+        return;
     }
+
+    callFragment.setCallStatus(getResources().getString(R.string.call_connected));
+
     // Enable statistics callback.
     peerConnectionClient.enableStatsEvents(true, STAT_CALLBACK_PERIOD);
     setSwappedFeeds(false /* isSwappedFeeds */);
@@ -576,6 +698,7 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
 
   // Disconnect from remote resources, dispose of local resources, and exit.
   private void disconnect() {
+    stopRinging();
     activityRunning = false;
     remoteProxyRenderer.setTarget(null);
     localProxyVideoSink.setTarget(null);
@@ -700,6 +823,12 @@ public class CallActivity extends Activity implements DirectRTCClient.SignalingE
   // are routed to UI thread.
   private void onConnectedToRoomInternal(final SignalingParameters params) {
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
+
+    stopRinging();
+    if (appRtcClient.getContact() != null) {
+      callFragment.setContactName(appRtcClient.getContact().getName());
+      callFragment.setCallStatus(getResources().getString(R.string.call_connecting));
+    }
 
     signalingParameters = params;
     logAndToast("Creating peer connection, delay=" + delta + "ms");

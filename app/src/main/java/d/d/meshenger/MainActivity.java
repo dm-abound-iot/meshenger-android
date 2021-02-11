@@ -170,21 +170,21 @@ public class MainActivity extends MeshengerActivity {
         Log.d(TAG, "OnResume");
         super.onResume();
 
-        checkPermissions();
+        checkPermissions(); // TODO: remove
     }
 
-    // move to CallActivity?
+    // TODO: move to CallActivity
     private void checkPermissions() {
         Log.d(TAG, "checkPermissions");
         Settings settings = MainService.instance.getSettings();
-        if (settings.getSendAudio()) {
+        if (settings.getRecordAudio()) {
             if (!Utils.hasPermission(this, Manifest.permission.RECORD_AUDIO)) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, 1);
                 return;
             }
         }
 
-        if (settings.getSendVideo()) {
+        if (settings.getRecordVideo()) {
             if (!Utils.hasPermission(this, Manifest.permission.CAMERA)) {
                 ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, 2);
                 return;
@@ -201,13 +201,13 @@ public class MainActivity extends MeshengerActivity {
             case 1:
                 if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Microphone disabled by default", Toast.LENGTH_LONG).show();
-                    settings.setSendAudio(false);
+                    settings.setRecordAudio(false);
                 }
                 break;
             case 2:
                 if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                     Toast.makeText(this, "Camera disabled by default", Toast.LENGTH_LONG).show();
-                    settings.setSendVideo(false);
+                    settings.setRecordVideo(false);
                 }
                 break;
             default:

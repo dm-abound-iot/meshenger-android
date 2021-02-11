@@ -156,9 +156,10 @@ public class AddressUtils {
                 // IPv4
                 if (tokens.length == 6) {
                     String addr = tokens[0];
-                    String mac = tokens[4];
                     String device = tokens[2];
-                    if (mac.equalsIgnoreCase(lookup_mac) && Utils.isIP(addr)) {
+                    String mac = tokens[4];
+                    String state = tokens[5];
+                    if (lookup_mac.equalsIgnoreCase(mac) && Utils.isIP(addr) && !state.equalsIgnoreCase("failed")) {
                         if (addr.startsWith("fe80:") || addr.startsWith("169.254.")) {
                             addrs.add(new InetSocketAddress(addr + "%" + device, port));
                         } else {
@@ -172,7 +173,8 @@ public class AddressUtils {
                     String addr = tokens[0];
                     String device = tokens[2];
                     String mac = tokens[4];
-                    if (mac.equalsIgnoreCase(lookup_mac) && Utils.isIP(addr)) {
+                    String state = tokens[6];
+                    if (mac.equalsIgnoreCase(lookup_mac) && Utils.isIP(addr) && !state.equalsIgnoreCase("failed")) {
                         if (addr.startsWith("fe80:") || addr.startsWith("169.254.")) {
                             addrs.add(new InetSocketAddress(addr + "%" + device, port));
                         } else {

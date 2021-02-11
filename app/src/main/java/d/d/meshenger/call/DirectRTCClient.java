@@ -51,11 +51,10 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
 
     private final ExecutorService executor;
     private AppRTCClient.SignalingEvents events;
-    //private final boolean isServer;
     private final CallDirection callDirection;
+    private final Object socketLock;
     private Socket socket;
     private Contact contact;
-    private final Object socketLock;
     private PrintWriter out;
 
     private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
@@ -76,7 +75,6 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         this.socket = socket;
         this.contact = contact;
         this.callDirection = callDirection;
-        //this.isServer = (socket != null);
         this.socketLock = new Object();
         this.executor = Executors.newSingleThreadExecutor();
         this.roomState = ConnectionState.NEW;
@@ -130,8 +128,8 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
 
         // contact is only set for outgoing call
         if (contact != null && contact.getAddresses().isEmpty()) {
-          reportError("No addresses set for contact.");
-          return;
+            reportError("No addresses set for contact.");
+            return;
         }
 
         int connectionTimeout = 500; // milliseconds
@@ -171,9 +169,9 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         Log.v(TAG, "Execute onTCPConnected");
         executor.execute(() -> {
             if (callDirection == CallDirection.INCOMING) {
-                Log.v(TAG, "Run onTCPConnected (INCOMING)");
+                Log.d(TAG, "Run onTCPConnected (INCOMING)");
             } else {
-                Log.v(TAG, "Run onTCPConnected (OUTGOING)");
+                Log.d(TAG, "Run onTCPConnected (OUTGOING)");
             }
             /*eventListener.*/ onTCPConnected(/*isServer*/);
         });
@@ -297,8 +295,12 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         //tcpClient = new TCPChannelClient.TCPSocketClient(executor, this /*, this.address, this.port*/ /*, DEFAULT_PORT*/);
         //tcpClient.start();
 
-        // start thread
-        this.start();
+        // start thread / starts run() method
+        if (!this.isAlive()) {
+            this.start();
+        } else {
+            Log.w(TAG, "Thread is already running!");
+        }
     }
 
     /**
