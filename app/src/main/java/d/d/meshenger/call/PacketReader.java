@@ -13,8 +13,8 @@ class PacketReader {
     final byte[] buffer;
     int pos;
 
-    PacketReader(Socket socket) throws IOException {
-        this.is = socket.getInputStream();
+    PacketReader(InputStream is) throws IOException {
+        this.is = is;
         this.buffer = new byte[16000];
         this.pos = 0;
     }

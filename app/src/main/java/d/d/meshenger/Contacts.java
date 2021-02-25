@@ -63,7 +63,7 @@ public class Contacts {
         return -1;
     }
 
-    Contact getContactByPublicKey(byte[] pubKey) {
+    public Contact getContactByPublicKey(byte[] pubKey) {
         for (Contact contact : contacts) {
             if (Arrays.equals(contact.getPublicKey(), pubKey)) {
                 return contact;

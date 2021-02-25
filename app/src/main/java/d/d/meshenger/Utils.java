@@ -19,6 +19,7 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -91,8 +92,6 @@ public class Utils {
         return Arrays.asList(parts);
     }
 
-    private static final Pattern NAME_PATTERN = Pattern.compile("[\\w _-]+");
-
     // check for a name that has no funny unicode characters to not let them look to much like other names
     public static boolean isValidContactName(String name) {
         if (name == null || name.length() == 0) {
@@ -103,7 +102,13 @@ public class Utils {
             return false;
         }
 
-        return NAME_PATTERN.matcher(name).matches();
+        // somewhat arbitrary limit to prevent
+        // messing up the contact list
+        if (name.length() > 28) {
+            return false;
+        }
+
+        return true;
     }
 
     private final static char[] hexArray = "0123456789ABCDEF".toCharArray();

@@ -234,10 +234,10 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     }
     Settings settings = MainService.instance.getSettings();
     peerConnectionParameters = new PeerConnectionParameters(
-      settings.getPlayVideo(),
-      settings.getRecordVideo(),
-      settings.getPlayAudio(),
-      settings.getRecordAudio(),
+      true, //settings.getPlayVideo(),
+      true, //settings.getRecordVideo(),
+      true, //settings.getPlayAudio(),
+      true, //settings.getRecordAudio(),
       true, // VIDEO_CALL // TODO: remove
       0, // VIDEO_WIDTH
       0, // VIDEO_HEIGHT
@@ -289,7 +289,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
 
 // my addition
 
-    appRtcClient = MainService.currentCall;
+    appRtcClient = DirectRTCClient.getCurrentCall();
 
     if (appRtcClient == null) {
       disconnectWithErrorMessage("No connection expected!");
@@ -377,7 +377,22 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     Log.d(TAG, "startRinging");
     int ringerMode = ((AudioManager) getSystemService(AUDIO_SERVICE)).getRingerMode();
 
+    switch (ringerMode) {
+    case AudioManager.RINGER_MODE_NORMAL:
+      Log.d(TAG, "ringerMode: RINGER_MODE_NORMAL");
+      break;
+    case AudioManager.RINGER_MODE_SILENT:
+      Log.d(TAG, "ringerMode: RINGER_MODE_SILENT");
+      break;
+    case AudioManager.RINGER_MODE_VIBRATE:
+      Log.d(TAG, "ringerMode: RINGER_MODE_VIBRATE");
+      break;
+    default:
+      Log.d(TAG, "ringerMode: unknown");
+    }
+
     if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
+      // alarm disabled
       return;
     }
 
@@ -394,12 +409,15 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     }
 
     if (ringerMode == AudioManager.RINGER_MODE_VIBRATE) {
+      // only vibrating
       return;
     }
 
     if (ringtone == null) {
       ringtone = RingtoneManager.getRingtone(getApplicationContext(), RingtoneManager.getActualDefaultRingtoneUri(getApplicationContext(), RingtoneManager.TYPE_RINGTONE));
     }
+
+    // start ringing
     ringtone.play();
   }
 
@@ -706,7 +724,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
       logAndToast("appRtcClient.disconnectFromRoom");
       appRtcClient.disconnectFromRoom();
       appRtcClient = null;
-      MainService.currentCall = null; // free instance (TODO: use set that uses synchronize)
+      DirectRTCClient.setCurrentCall(null);
     }
     if (pipRenderer != null) {
       pipRenderer.release();
@@ -839,7 +857,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     peerConnectionClient.createPeerConnection2(
         localProxyVideoSink, remoteSinks, videoCapturer, signalingParameters.iceServers);
 
-    if (signalingParameters.initiator) {
+    if (signalingParameters.initiator) { // INCOMING call
       logAndToast("Creating OFFER...");
       // Create offer. Offer SDP will be sent to answering client in
       // PeerConnectionEvents.onLocalDescription event.

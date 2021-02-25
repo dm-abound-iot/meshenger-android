@@ -262,10 +262,10 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
         Log.d(TAG, "onItemClick");
         Contact contact = (Contact) adapterView.getAdapter().getItem(i);
-        MainService.currentCall = new DirectRTCClient(contact);
-
-        Intent intent = new Intent(this.mainActivity, CallActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        if (DirectRTCClient.createOutgoingCall(contact)) {
+            Intent intent = new Intent(getContext(), CallActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        }
     }
 }

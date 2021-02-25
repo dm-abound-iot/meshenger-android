@@ -32,7 +32,6 @@ public class AddressUtils {
             address_set.add(last_working_address);
         }
 
-
         for (String address : initial_addresses) {
             try {
                 if (Utils.isMAC(address)) {
@@ -52,29 +51,45 @@ public class AddressUtils {
 
         // sort addresses, prefer last successful address and IPv6
         InetSocketAddress[] address_array = address_set.toArray(new InetSocketAddress[0]);
-        Arrays.sort(address_array, new Comparator<InetSocketAddress>() {
-            private int addressValue(InetAddress addr) {
-                if (last_working_address != null && last_working_address.getAddress() == addr) {
-                    return 100;
+        Arrays.sort(address_array, (InetSocketAddress lhs, InetSocketAddress rhs) -> {
+            InetAddress rhs_addr = lhs.getAddress();
+            InetAddress lhs_addr = rhs.getAddress();
+
+            // prefer last working address
+            if (last_working_address != null) {
+                if (last_working_address.getAddress().equals(lhs_addr)) {
+                    return -1;
                 }
-                if (addr instanceof Inet6Address) {
-                    Inet6Address addr6 = (Inet6Address) addr;
-                    if (addr6.isAnyLocalAddress()) {
-                        return 50;
+                if (last_working_address.getAddress().equals(rhs_addr)) {
+                    return 1;
+                }
+            }
+
+            if (lhs_addr instanceof Inet6Address) {
+                Inet6Address lhs_addr6 = (Inet6Address) lhs_addr;
+                if (rhs_addr instanceof Inet6Address) {
+                    Inet6Address rhs_addr6 = (Inet6Address) rhs_addr;
+                    if (lhs_addr6.isAnyLocalAddress()) {
+                        return -1;
                     }
-                    return 30;
+                    return 1;
                 }
-                if (addr instanceof Inet4Address) {
-                    // Inet4Address addr4 = (Inet4Address) addr;
-                    return 20;
+                if (rhs_addr instanceof Inet4Address) {
+                    return -1;
                 }
-                return 0;
             }
-            @Override
-            public int compare(InetSocketAddress lhs, InetSocketAddress rhs) {
-                // -1 - less than, 1 - greater than, 0 - equal, all inversed for descending
-                return addressValue(lhs.getAddress()) - addressValue(rhs.getAddress());
+            if (lhs_addr instanceof Inet4Address) {
+                Inet4Address lhs_addr4 = (Inet4Address) lhs_addr;
+                if (rhs_addr instanceof Inet6Address) {
+                    return 1;
+                }
+                if (rhs_addr instanceof Inet4Address) {
+                    Inet4Address rhs_addr4 = (Inet4Address) rhs_addr;
+                    return 1;
+                }
             }
+
+            return 0;
         });
 
         for (InetSocketAddress address : address_array) {

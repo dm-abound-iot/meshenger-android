@@ -661,7 +661,14 @@ public class PeerConnectionClient {
     // Enable DTLS for normal calls and disable for loopback calls.
     rtcConfig.enableDtlsSrtp = true; //!peerConnectionParameters.loopback;
     rtcConfig.sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN;
-
+/*
+    rtcConfig.iceCandidatePoolSize = 0;
+    rtcConfig.iceTransportsType = PeerConnection.IceTransportsType.NONE;
+    // We must have the continual gathering enabled to allow the surfacing of candidates on the ICE
+    // transport type change.
+    rtcConfig.continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY;
+    rtcConfig.surfaceIceCandidatesOnIceTransportTypeChanged = true;
+*/
     peerConnection = factory.createPeerConnection(rtcConfig, pcObserver);
 
     if (dataChannelEnabled) {
@@ -1307,6 +1314,7 @@ public class PeerConnectionClient {
   private class SDPObserver implements SdpObserver {
     @Override
     public void onCreateSuccess(final SessionDescription desc) {
+      Log.d(TAG, "onCreateSuccess");
       if (localDescription != null) {
         reportError("Multiple SDP create.");
         return;
@@ -1331,10 +1339,12 @@ public class PeerConnectionClient {
     @Override
     public void onSetSuccess() {
       executor.execute(() -> {
+        Log.d(TAG, "onSetSuccess");
         if (peerConnection == null || isError) {
           return;
         }
-        if (isInitiator) {
+        if (isInitiator) { // INCOMMING connection
+          Log.d(TAG, "onSetSuccess / isInitiator: true (incoming connection)");
           // For offering peer connection we first create offer and set
           // local SDP, then after receiving answer set remote SDP.
           if (peerConnection.getRemoteDescription() == null) {
@@ -1348,6 +1358,7 @@ public class PeerConnectionClient {
             drainCandidates();
           }
         } else {
+          Log.d(TAG, "onSetSuccess / isInitiator: false (outgoing connection)");
           // For answering peer connection we set remote SDP and then
           // create answer and set local SDP.
           if (peerConnection.getLocalDescription() != null) {

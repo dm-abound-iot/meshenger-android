@@ -11,8 +11,8 @@ class PacketWriter {
     final OutputStream os;
     final byte[] header;
 
-    public PacketWriter(Socket socket) throws IOException {
-        this.os = socket.getOutputStream();
+    public PacketWriter(OutputStream os) throws IOException {
+        this.os = os;
         this.header = new byte[4];
     }
 
@@ -28,5 +28,6 @@ class PacketWriter {
     	// need to concatenate?
     	this.os.write(this.header);
         this.os.write(message);
+        this.os.flush();
     }
 }

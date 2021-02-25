@@ -172,7 +172,10 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
         dialog.show();
     }
 
-    // EUI-64 based address to MAC address
+    /*
+     * When adding an unknown contact, try to
+     * extract a MAC address from the IP address.
+     */
     private static String getGeneralizedAddress(InetAddress address) {
         if (address instanceof Inet6Address) {
             // if the IPv6 address contains a MAC address, take that.
@@ -190,12 +193,13 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
         Event event = this.eventListAdapter.getItem(i);
 
         String address = getGeneralizedAddress(event.address);
-        Contact contact = new Contact("Unknown Caller123", event.pubKey, Arrays.asList(address));
+        Contact contact = new Contact("", event.pubKey, Arrays.asList(address));
         contact.setLastWorkingAddress(InetSocketAddress.createUnresolved(address, MainService.serverPort));
-        MainService.currentCall = new DirectRTCClient(contact);
-
-        Intent intent = new Intent(this.mainActivity, CallActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        startActivity(intent);
+        contact.addAddress(address);
+        if (DirectRTCClient.createOutgoingCall(contact)) {
+            Intent intent = new Intent(getContext(), CallActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        }
     }
 }
