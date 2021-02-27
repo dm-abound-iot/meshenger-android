@@ -21,16 +21,14 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.PopupMenu;
-
 import org.json.JSONException;
-
-import java.util.ArrayList;
 import java.util.List;
 
 import static android.os.Looper.getMainLooper;
 
 import d.d.meshenger.call.CallActivity;
 import d.d.meshenger.call.DirectRTCClient;
+
 
 public class ContactListFragment extends Fragment implements AdapterView.OnItemClickListener {
     private static final String TAG = "ContactListFragment";

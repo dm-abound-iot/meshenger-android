@@ -1,13 +1,8 @@
 package d.d.meshenger;
 
-import android.app.Service;
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.widget.TextView;
-import android.widget.Toast;
 
 
 public class AboutActivity extends MeshengerActivity {

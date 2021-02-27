@@ -1,16 +1,11 @@
 package d.d.meshenger;
 
 import android.app.Dialog;
-import android.app.Service;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.res.Resources;
 import android.content.res.TypedArray;
 import android.net.Uri;
 import android.os.Build;
-import android.os.IBinder;
 import android.os.PowerManager;
 import android.support.v7.app.AlertDialog;
 import android.os.Bundle;
@@ -22,7 +17,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;

@@ -1,12 +1,7 @@
 package d.d.meshenger;
 
 import android.app.Activity;
-import android.app.Service;
-import android.content.ComponentName;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.graphics.Color;
-import android.os.IBinder;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;

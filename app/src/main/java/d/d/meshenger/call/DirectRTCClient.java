@@ -10,50 +10,33 @@
 
 package d.d.meshenger.call;
 
-import android.content.Intent;
 import android.support.annotation.Nullable;
 import android.util.Log;
-
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.libsodium.jni.Sodium;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
-import org.webrtc.PeerConnection;
 import org.webrtc.ThreadUtils;
 
 import d.d.meshenger.AddressUtils;
 import d.d.meshenger.Contact;
 import d.d.meshenger.Crypto;
-import d.d.meshenger.Event;
 import d.d.meshenger.MainService;
-import d.d.meshenger.Settings;
-import d.d.meshenger.R;
-
 
 /*
 
 */
-public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChannelClient.TCPChannelEvents*/ {
+public class DirectRTCClient extends Thread implements AppRTCClient {
     private static final String TAG = "DirectRTCClient";
 
     private static DirectRTCClient currentCall = null;
@@ -75,35 +58,6 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
 
     // All alterations of the room state should be done from inside the looper thread.
     private ConnectionState roomState;
-
-    // TODO: use
-    private static class SocketWrapper {
-        public Socket socket;
-        public PacketWriter pw;
-        public PacketReader pr;
-
-        public SocketWrapper(final Socket socket) throws IOException {
-            this.socket = socket;
-            this.pw = new PacketWriter(socket.getOutputStream());
-            this.pr = new PacketReader(socket.getInputStream());
-        }
-
-        public void close() throws IOException {
-            this.socket.close();
-        }
-
-        public SocketAddress getRemoteSocketAddress() {
-            return this.socket.getRemoteSocketAddress();
-        }
-
-        public byte[] readMessage() throws IOException {
-            return this.pr.readMessage();
-        }
-
-        public void writeMessage(byte[] message) throws IOException {
-            this.pw.writeMessage(message);
-        }
-    }
 
     public DirectRTCClient(@Nullable final SocketWrapper socket, final Contact contact, final CallDirection callDirection) {
         this.socket = socket;

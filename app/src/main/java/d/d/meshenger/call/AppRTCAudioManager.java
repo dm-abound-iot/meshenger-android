@@ -14,18 +14,19 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.media.AudioDeviceInfo;
 import android.media.AudioManager;
 import android.os.Build;
-import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
 import org.webrtc.ThreadUtils;
+
 
 /**
  * AppRTCAudioManager manages all audio related parts of the AppRTC demo.

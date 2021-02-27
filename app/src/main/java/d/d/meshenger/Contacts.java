@@ -1,25 +1,8 @@
 package d.d.meshenger;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONArray;
-import org.libsodium.jni.Sodium;
-
-import java.io.Serializable;
-import java.lang.reflect.Array;
-import java.net.ConnectException;
-import java.net.Inet4Address;
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 
 public class Contacts {

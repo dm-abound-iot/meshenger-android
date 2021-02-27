@@ -2,12 +2,8 @@ package d.d.meshenger;
 
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.Service;
-import android.content.ComponentName;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;

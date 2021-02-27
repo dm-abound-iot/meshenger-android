@@ -31,7 +31,6 @@ import android.widget.Toast;
 import org.libsodium.jni.Sodium;
 import org.libsodium.jni.NaCl;
 
-
 /*
  * Show splash screen, name setup dialog, database password dialog and
  * start background service before starting the MainActivity.
