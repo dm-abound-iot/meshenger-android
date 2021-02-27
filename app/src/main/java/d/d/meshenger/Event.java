@@ -6,8 +6,8 @@ import java.util.Date;
 import d.d.meshenger.call.DirectRTCClient.CallDirection;
 
 
-class Event {
-    enum CallType {
+public class Event {
+    public enum CallType {
         UNKNOWN,
         ACCEPTED,
         DECLINED,

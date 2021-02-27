@@ -17,6 +17,7 @@ import android.util.Log;
 import java.net.ConnectException;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -43,6 +44,7 @@ import org.webrtc.ThreadUtils;
 import d.d.meshenger.AddressUtils;
 import d.d.meshenger.Contact;
 import d.d.meshenger.Crypto;
+import d.d.meshenger.Event;
 import d.d.meshenger.MainService;
 import d.d.meshenger.Settings;
 import d.d.meshenger.R;
@@ -63,11 +65,10 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
     private AppRTCClient.SignalingEvents events;
     private final CallDirection callDirection;
     private final Object socketLock;
-    private Socket socket;
+    private SocketWrapper socket;
     private final Contact contact;
     private final byte[] ownSecretKey;
     private final byte[] ownPublicKey;
-    private PacketWriter out;
 
     private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
     public enum CallDirection { INCOMING, OUTGOING };
@@ -75,7 +76,36 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
     // All alterations of the room state should be done from inside the looper thread.
     private ConnectionState roomState;
 
-    public DirectRTCClient(@Nullable final Socket socket, final Contact contact, final CallDirection callDirection) {
+    // TODO: use
+    private static class SocketWrapper {
+        public Socket socket;
+        public PacketWriter pw;
+        public PacketReader pr;
+
+        public SocketWrapper(final Socket socket) throws IOException {
+            this.socket = socket;
+            this.pw = new PacketWriter(socket.getOutputStream());
+            this.pr = new PacketReader(socket.getInputStream());
+        }
+
+        public void close() throws IOException {
+            this.socket.close();
+        }
+
+        public SocketAddress getRemoteSocketAddress() {
+            return this.socket.getRemoteSocketAddress();
+        }
+
+        public byte[] readMessage() throws IOException {
+            return this.pr.readMessage();
+        }
+
+        public void writeMessage(byte[] message) throws IOException {
+            this.pw.writeMessage(message);
+        }
+    }
+
+    public DirectRTCClient(@Nullable final SocketWrapper socket, final Contact contact, final CallDirection callDirection) {
         this.socket = socket;
         this.contact = contact;
         this.callDirection = callDirection;
@@ -128,7 +158,11 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
 
       return null;
     }
-
+/*
+    private void addCallEvent(Event.CallType callType) {
+        MainService.instance.getEvents().addEvent(contact, callDirection, callType);
+    }
+*/
     @Override
     public void run() {
         Log.d(TAG, "Listening thread started...");
@@ -149,8 +183,6 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
             return;
         }
 
-        PacketReader in;
-
         if (callDirection == CallDirection.OUTGOING) {
             assert(contact != null);
             assert(socket == null);
@@ -169,15 +201,17 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
 
                 InetSocketAddress[] addresses = AddressUtils.getAllSocketAddresses(
                         contact.getAddresses(), contact.getLastWorkingAddress(), MainService.serverPort);
-                socket = establishConnection(addresses, 500 /* connection timeout ms */);
+                Socket socket = establishConnection(addresses, 500 /* connection timeout ms */);
                 // Connecting failed, error has already been reported, just exit.
                 if (socket == null) {
                     reportError("Connection failed.");
                     return;
                 }
 
-                out = new PacketWriter(socket.getOutputStream());
-                in = new PacketReader(socket.getInputStream());
+                this.socket = new SocketWrapper(socket);
+
+                //out = new PacketWriter(socket.getOutputStream());
+                //in = new PacketReader(socket.getInputStream());
 
                 executor.execute(() -> {
                     sendMessage("{\"type\":\"call\"}");
@@ -193,7 +227,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
             assert(callDirection == CallDirection.INCOMING);
             assert(contact != null);
             assert(socket != null);
-
+/*
             //synchronized (socketLock) {
             try {
                 out = new PacketWriter(socket.getOutputStream());
@@ -202,10 +236,11 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
                 disconnectSocket();
                 //disconnectFromRoom();
                 reportError("Failed to open IO on rawSocket: " + e.getMessage());
+                this.roomState = ConnectionState.ERROR;
                 return;
             }
             //}
-
+*/
             Log.v(TAG, "Execute onConnectedToRoom");
             executor.execute(() -> {
                 roomState = ConnectionState.CONNECTED;
@@ -239,7 +274,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
             //final String message;
             try {
                 Log.d(TAG, "in.readMessage()");
-                message = /*in.readLine(); */ in.readMessage();
+                message = /*in.readLine(); */ this.socket.readMessage();
             } catch (IOException e) {
                 //synchronized (socketLock) {
                     // If socket was closed, this is expected.
@@ -256,6 +291,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
             // No data received, rawSocket probably closed.
             if (message == null) {
                 Log.d(TAG, "message is null");
+                // hm, call hangup?
                 break;
             }
 
@@ -286,7 +322,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
                 if (socket != null) {
                     socket.close();
                     socket = null;
-                    out = null;
+                    //out = null;
 
                     executor.execute(() -> {
                         events.onChannelClose();
@@ -516,7 +552,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
     // --------------------------------------------------------------------
     // Helper functions.
     private void reportError(final String errorMessage) {
-        Log.e(TAG, errorMessage);
+        Log.e(TAG, errorMessage + " (" + roomState.name() + ")");
         executor.execute(() -> {
             if (roomState != ConnectionState.ERROR) {
                 roomState = ConnectionState.ERROR;
@@ -530,13 +566,13 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         //executor.execute(() -> {
             byte[] encrypted = Crypto.encryptMessage(message, contact.getPublicKey(), ownPublicKey, ownSecretKey);
             synchronized (socketLock) {
-                if (out == null) { //roomState != ConnectionState.CONNECTED) {
+                if (this.socket == null) { //roomState != ConnectionState.CONNECTED) {
                     reportError("Sending data on closed socket.");
                     return;
                 }
 
                 try {
-                    out.writeMessage(encrypted);
+                    this.socket.writeMessage(encrypted);
                 } catch (IOException e) {
                     reportError("Failed to write message: " + e);
                 }
@@ -598,25 +634,26 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
         }
     }
 
-    public static boolean createIncomingCall(Socket socket) {
+    public static boolean createIncomingCall(Socket rawSocket) {
         Log.d(TAG, "createIncomingCall");
 
-        if (socket == null) {
+        if (rawSocket == null) {
             return false;
         }
 
-        //try {
+        try {
             // search for contact identity
             byte[] clientPublicKeyOut = new byte[Sodium.crypto_sign_publickeybytes()];
-/*
             byte[] ownSecretKey = MainService.instance.getSettings().getSecretKey();
             byte[] ownPublicKey = MainService.instance.getSettings().getPublicKey();
 
-            PacketWriter pw = new PacketWriter(socket.getOutputStream());
-            PacketReader pr = new PacketReader(socket.getInputStream());
+            // hm, need to pass on streams?
+            SocketWrapper socket = new SocketWrapper(rawSocket);
+            //PacketWriter pw = new PacketWriter(socket.getOutputStream());
+            //PacketReader pr = new PacketReader(socket.getInputStream());
 
             Log.d(TAG, "readMessage");
-            byte[] request = pr.readMessage();
+            byte[] request = socket.readMessage();
 
             if (request == null) {
                 Log.d(TAG, "request is null");
@@ -632,8 +669,8 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
                 return false;
             }
             Log.d(TAG, "decrypted message: " + decrypted);
-*/
-            Contact contact = null; //MainService.instance.getContacts().getContactByPublicKey(clientPublicKeyOut);
+
+            Contact contact = MainService.instance.getContacts().getContactByPublicKey(clientPublicKeyOut);
 
             if (contact == null) {
                 Log.d(TAG, "unknown contact");
@@ -660,15 +697,16 @@ public class DirectRTCClient extends Thread implements AppRTCClient /*, TCPChann
                 currentCall = new DirectRTCClient(socket, contact, DirectRTCClient.CallDirection.INCOMING);
             }
             return true;
-        /*} catch (IOException e) {
-            if (socket != null) {
+        } catch (IOException e) {
+            if (rawSocket != null) {
                 try {
-                    socket.close();
+                    rawSocket.close();
                 } catch (IOException _e) {
                     // ignore
                 }
             }
+            Log.e(TAG, "exception in createIncomingCall");
             return false;
-        }*/
+        }
     }
 }
