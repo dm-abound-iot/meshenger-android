@@ -123,7 +123,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="settings_settings_mode"
+                        android:text="@string/settings_settings_mode"
                         android:textColor="?attr/primaryTextColor"
                         android:textSize="25dp" />
 
@@ -156,7 +156,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="settings_speakerphone"
+                        android:text="@string/settings_speakerphone"
                         android:textColor="?attr/primaryTextColor"
                         android:textSize="25dp" />
 
@@ -201,7 +201,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="settings_video_resolutions"
+                        android:text="@string/settings_video_resolutions"
                         android:textColor="?attr/primaryTextColor"
                         android:textSize="25dp" />
 
@@ -258,7 +258,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="settings_video_codecs"
+                        android:text="@string/settings_video_codecs"
                         android:textColor="?attr/primaryTextColor"
                         android:textSize="25dp" />
 
@@ -281,7 +281,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="settings_audio_codecs"
+                        android:text="@string/settings_audio_codecs"
                         android:textColor="?attr/primaryTextColor"
                         android:textSize="25dp" />
 
@@ -304,7 +304,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Enable Microphone"
+                        android:text="@string/settings_enable_microphone"
                         android:textSize="25dp"
                         android:textColor="?attr/primaryTextColor" />
 
@@ -328,7 +328,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Enable Speaker"
+                        android:text="@string/settings_enable_speaker"
                         android:textSize="25dp"
                         android:textColor="?attr/primaryTextColor" />
 
@@ -352,7 +352,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Enable Camera"
+                        android:text="@string/settings_enable_camera"
                         android:textSize="25dp"
                         android:textColor="?attr/primaryTextColor" />
 
@@ -376,7 +376,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Enable Video"
+                        android:text="@string/settings_enable_video"
                         android:textSize="25dp"
                         android:textColor="?attr/primaryTextColor" />
 
@@ -400,7 +400,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Accept Calls Automatically"
+                        android:text="@string/settings_auto_accept_call"
                         android:textSize="25dp"
                         android:textColor="?attr/primaryTextColor" />
 
@@ -424,7 +424,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Start Calls Immediately"
+                        android:text="@string/settings_auto_connect_call"
                         android:textSize="25dp"
                         android:textColor="?attr/primaryTextColor" />
 

@@ -16,7 +16,7 @@ public class Contact implements Serializable {
     enum State { ONLINE, OFFLINE, UNKNOWN };
 
     private String name;
-    private byte[] pubkey;
+    private byte[] publicKey;
     private boolean blocked;
     private List<String> addresses;
 
@@ -29,18 +29,11 @@ public class Contact implements Serializable {
     // and for unknown contact initialization)
     private InetSocketAddress last_working_address = null;
 
-    public Contact(String name, byte[] pubkey, List<String> addresses) {
+    public Contact(String name, byte[] publicKey, List<String> addresses, boolean blocked) {
         this.name = name;
-        this.pubkey = pubkey;
-        this.blocked = false;
+        this.publicKey = publicKey;
         this.addresses = addresses;
-    }
-
-    private Contact() {
-        this.name = "";
-        this.pubkey = null;
-        this.blocked = false;
-        this.addresses = new ArrayList<>();
+        this.blocked = blocked;
     }
 
     public State getState() {
@@ -77,7 +70,7 @@ public class Contact implements Serializable {
     }
 
     public byte[] getPublicKey() {
-        return pubkey;
+        return publicKey;
     }
 
     public String getName() {
@@ -106,48 +99,33 @@ public class Contact implements Serializable {
         return this.last_working_address;
     }
 
-    public static JSONObject exportJSON(Contact contact, boolean all) throws JSONException {
+    public static JSONObject toJSON(Contact contact) throws JSONException {
         JSONObject object = new JSONObject();
         JSONArray array = new JSONArray();
 
         object.put("name", contact.name);
-        object.put("public_key", Utils.byteArrayToHexString(contact.pubkey));
+        object.put("public_key", Utils.byteArrayToHexString(contact.publicKey));
+        object.put("blocked", contact.blocked);
 
         for (String address : contact.getAddresses()) {
             array.put(address);
         }
         object.put("addresses", array);
 
-        if (all) {
-            object.put("blocked", contact.blocked);
-        }
-
         return object;
     }
 
-    public static Contact importJSON(JSONObject object, boolean all) throws JSONException {
-        Contact contact = new Contact();
+    public static Contact fromJSON(JSONObject obj) throws JSONException {
+        String name = obj.getString("name");
+        byte[] publicKey = Utils.hexStringToByteArray(obj.getString("public_key"));
+        boolean blocked = obj.getBoolean("blocked");
 
-        contact.name = object.getString("name");
-        contact.pubkey = Utils.hexStringToByteArray(object.getString("public_key"));
-
-        if (!Utils.isValidContactName(contact.name)) {
-            throw new JSONException("Invalid Name.");
-        }
-
-        if (contact.pubkey == null || contact.pubkey.length != Sodium.crypto_sign_publickeybytes()) {
-            throw new JSONException("Invalid Public Key.");
-        }
-
-        JSONArray array = object.getJSONArray("addresses");
+        List<String> addresses = new ArrayList<>();
+        JSONArray array = obj.getJSONArray("addresses");
         for (int i = 0; i < array.length(); i += 1) {
-            contact.addAddress(array.getString(i).toUpperCase().trim());
+            addresses.add(array.getString(i).toUpperCase().trim());
         }
 
-        if (all) {
-            contact.blocked = object.getBoolean("blocked");
-        }
-
-        return contact;
+        return new Contact(name, publicKey, addresses, blocked);
     }
 }

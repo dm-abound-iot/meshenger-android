@@ -57,21 +57,8 @@ public class CallFragment extends Fragment {
     void onVideoMirrorSwitch(boolean mirror); // added by me
     void onCaptureFormatChange(int width, int height, int framerate);
     boolean onToggleMic();
-
-    /*
-    void onRecordVideo(boolean enable) // enable/disable video recording
-    void onSendAudio(boolean enable) // disable/enable audio recording
-    void onPlayVideo(boolean enable) // disable/enable video accept (?)
-    void onPlayAudio(boolean enable) // disable/enable audio accept (?)
-    void onFrontCamera(boolean enable)
-
-    // bitrate slider?
-
-    void onChangeCaptureSize(width, height)
-    void onChangeCaptureFPS(fps)
-    void 
-    */
   }
+
   boolean mirror = true;
 
   @Override
@@ -132,6 +119,7 @@ public class CallFragment extends Fragment {
   public void setContactName(String name) {
     callNameText = name;
   }
+
 
   public void setCallStatus(String status) {
     /*

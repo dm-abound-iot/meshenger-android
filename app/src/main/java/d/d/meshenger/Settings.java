@@ -259,7 +259,7 @@ public class Settings {
         this.iceServers = iceServers;
     }
 
-    public static Settings importJSON(JSONObject obj) throws JSONException {
+    public static Settings fromJSON(JSONObject obj) throws JSONException {
         Settings s = new Settings();
         s.username = obj.getString("username");
         s.secretKey = Utils.hexStringToByteArray(obj.getString("secret_key"));
@@ -292,7 +292,7 @@ public class Settings {
         return s;
     }
 
-    public static JSONObject exportJSON(Settings s) throws JSONException {
+    public static JSONObject toJSON(Settings s) throws JSONException {
         JSONObject obj = new JSONObject();
         obj.put("username", s.username);
         obj.put("secret_key", Utils.byteArrayToHexString(s.secretKey));
@@ -328,6 +328,6 @@ public class Settings {
     }
 
     public Contact getOwnContact() {
-        return new Contact(this.username, this.publicKey, this.addresses);
+        return new Contact(this.username, this.publicKey, this.addresses, false);
     }
 }

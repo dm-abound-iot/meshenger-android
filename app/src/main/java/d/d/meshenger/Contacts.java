@@ -1,5 +1,9 @@
 package d.d.meshenger;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -46,9 +50,9 @@ public class Contacts {
         return -1;
     }
 
-    public Contact getContactByPublicKey(byte[] pubKey) {
+    public Contact getContactByPublicKey(byte[] publicKey) {
         for (Contact contact : contacts) {
-            if (Arrays.equals(contact.getPublicKey(), pubKey)) {
+            if (Arrays.equals(contact.getPublicKey(), publicKey)) {
                 return contact;
             }
         }
@@ -63,26 +67,28 @@ public class Contacts {
         }
         return null;
     }
-/*
-    void addContact(Contact contact) {
-        contacts.add(contact);
-        this.service.db.addContact(contact);
-        saveDatabase();
-        LocalBroadcastManager.getInstance(this.service).sendBroadcast(new Intent("refresh_contact_list"));
-    }
 
-    void deleteContact(byte[] pubKey) {
-        this.service.db.deleteContact(pubKey);
-        saveDatabase();
-        LocalBroadcastManager.getInstance(this.service).sendBroadcast(new Intent("refresh_contact_list"));
-    }
+    public static JSONObject toJSON(Contacts contacts) throws JSONException {
+        JSONObject obj = new JSONObject();
 
-    void setContactState(byte[] publicKey, Contact.State state) {
-        Contact contact = getContactByPublicKey(publicKey);
-        if (contact != null && contact.getState() != state) {
-            contact.setState(state);
-            LocalBroadcastManager.getInstance(this.service).sendBroadcast(new Intent("refresh_contact_list"));
+        JSONArray array = new JSONArray();
+        for (Contact contact : contacts.contacts) {
+            array.put(Contact.toJSON(contact));
         }
+        obj.put("entries", array);
+
+        return obj;
     }
- */
+
+    public static Contacts fromJSON(JSONObject obj) throws JSONException {
+        Contacts contacts = new Contacts();
+
+        JSONArray array = obj.getJSONArray("entries");
+        for (int i = 0; i < array.length(); i += 1) {
+            contacts.contacts.add(
+                Contact.fromJSON(array.getJSONObject(i))
+            );
+        }
+        return contacts;
+    }
 }

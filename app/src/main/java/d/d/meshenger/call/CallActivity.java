@@ -756,7 +756,6 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     }
   }
 
-  // Log |msg| and Toast about it.
   private void logAndToast(String msg) {
     Log.d(TAG, msg);
     if (logToast != null) {

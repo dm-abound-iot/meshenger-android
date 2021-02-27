@@ -14,7 +14,7 @@ import java.util.List;
 
 class Database {
     private static final String TAG = "Database";
-    static String version = "3.1.0"; // current version
+    static String version = "4.0.0"; // current version
     private Settings settings;
     private Contacts contacts;
     private Events events;
@@ -79,6 +79,9 @@ class Database {
             Database.store(path, db, password);
         }
 
+        Log.d(TAG, "Loaded " + db.contacts.getContactList().size() + " contacts");
+        Log.d(TAG, "Loaded " + db.events.getEventList().size() + " events.");
+
         return db;
     }
 
@@ -96,7 +99,7 @@ class Database {
     }
 
     private static void alignSettings(JSONObject settings) throws JSONException {
-        JSONObject defaults = Settings.exportJSON(new Settings());
+        JSONObject defaults = Settings.toJSON(new Settings());
 
         // default keys
         Iterator<String> defaults_iter = defaults.keys();
@@ -173,9 +176,17 @@ class Database {
             from = "3.0.3";
         }
 
-        // 3.0.3 => 3.1.0
+        // 3.0.3 => 4.0.0
         if (from.equals("3.0.3")) {
-            from = "3.1.0";
+            from = "4.0.0";
+            JSONObject events = new JSONObject();
+            events.put("entries", new JSONArray());
+            settings.put("events", events);
+
+            JSONObject contacts = new JSONObject();
+            JSONArray entries = db.getJSONArray("contacts");
+            contacts.put("entries", entries);
+            settings.put("contacts", contacts);
         }
 
         // add missing keys with defaults and remove unexpected keys
@@ -189,14 +200,9 @@ class Database {
     public static JSONObject toJSON(Database db) throws JSONException {
         JSONObject obj = new JSONObject();
         obj.put("version", db.version);
-        obj.put("settings", Settings.exportJSON(db.settings));
-
-        JSONArray contacts = new JSONArray();
-        for (Contact contact : db.getContacts().getContactList()) {
-            contacts.put(Contact.exportJSON(contact, true));
-        }
-        obj.put("contacts", contacts);
-
+        obj.put("settings", Settings.toJSON(db.settings));
+        obj.put("contacts", Contacts.toJSON(db.contacts));
+        obj.put("events", Events.toJSON(db.events));
         return obj;
     }
 
@@ -207,16 +213,16 @@ class Database {
         db.version = obj.getString("version");
 
         // import contacts
-        JSONArray array = obj.getJSONArray("contacts");
-        for (int i = 0; i < array.length(); i += 1) {
-            db.getContacts().addContact(
-                Contact.importJSON(array.getJSONObject(i), true)
-            );
-        }
+        JSONObject contacts = obj.getJSONObject("contacts");
+        db.contacts = Contacts.fromJSON(contacts);
 
         // import settings
         JSONObject settings = obj.getJSONObject("settings");
-        db.settings = Settings.importJSON(settings);
+        db.settings = Settings.fromJSON(settings);
+
+        // import events
+        JSONObject events = obj.getJSONObject("events");
+        db.events = Events.fromJSON(events);
 
         return db;
     }

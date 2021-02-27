@@ -22,6 +22,7 @@ import com.journeyapps.barcodescanner.DefaultDecoderFactory;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.libsodium.jni.Sodium;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -59,28 +60,61 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         }
     }
 
-    private void addContact(String data) throws JSONException {
-        JSONObject object = new JSONObject(data);
-        Contact new_contact = Contact.importJSON(object, false);
+    private Contact parseContact(String data) {
+        Log.d(TAG, "parseContact");
 
-        if (new_contact.getAddresses().isEmpty()) {
+        try {
+            JSONObject object = new JSONObject(data);
+
+            if (!object.has("blocked")) {
+                object.put("blocked", false);
+            }
+
+            Contact contact = Contact.fromJSON(object);
+
+            if (!Utils.isValidContactName(contact.getName())) {
+                Toast.makeText(this, "Invalid name.", Toast.LENGTH_SHORT).show();
+                return null;
+            }
+
+            if (contact.getPublicKey() == null || contact.getPublicKey().length != Sodium.crypto_sign_publickeybytes()) {
+                Toast.makeText(this, "Invalid public key.", Toast.LENGTH_SHORT).show();
+                return null;
+            }
+
+            return contact;
+        } catch (JSONException e) {
+            Toast.makeText(this, R.string.invalid_data, Toast.LENGTH_SHORT).show();
+        }
+        return null;
+    }
+
+    private void addContact(String data) {
+        Contact contact = parseContact(data);
+
+        if (contact == null) {
+            finish();
+            return;
+        }
+
+        if (contact.getAddresses().isEmpty()) {
             Toast.makeText(this, R.string.contact_has_no_address_warning, Toast.LENGTH_LONG).show();
         }
 
         // lookup existing contacts by key and name
         Contacts contacts = MainService.instance.getContacts();
-        Contact existing_pubkey_contact = contacts.getContactByPublicKey(new_contact.getPublicKey());
-        Contact existing_name_contact = contacts.getContactByName(new_contact.getName());
+        Contact existing_pubkey_contact = contacts.getContactByPublicKey(contact.getPublicKey());
+        Contact existing_name_contact = contacts.getContactByName(contact.getName());
 
         if (existing_pubkey_contact != null) {
             // contact with that public key exists
-            showPubkeyConflictDialog(new_contact, existing_pubkey_contact);
+            showPubkeyConflictDialog(contact, existing_pubkey_contact);
         } else if (existing_name_contact != null) {
             // contact with that name exists
-            showNameConflictDialog(new_contact, existing_name_contact);
+            showNameConflictDialog(contact, existing_name_contact);
         } else {
             // no conflict
-            contacts.addContact(new_contact);
+            contacts.addContact(contact);
             MainService.instance.saveDatabase();
             LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("refresh_contact_list"));
             finish();
@@ -184,13 +218,8 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         EditText et = new EditText(this);
         builder.setTitle(R.string.paste_invitation)
             .setPositiveButton(R.string.ok, (dialogInterface, i) -> {
-                try {
-                    String data = et.getText().toString();
-                    addContact(data);
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    Toast.makeText(this, R.string.invalid_data, Toast.LENGTH_SHORT).show();
-                }
+                String data = et.getText().toString();
+                addContact(data);
             })
             .setNegativeButton(R.string.cancel, (dialog, i) -> {
                 dialog.cancel();
@@ -217,13 +246,8 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         // no more scan until result is processed
         barcodeView.pause();
 
-        try {
-            String data = result.getText();
-            addContact(data);
-        } catch (JSONException e) {
-            e.printStackTrace();
-            Toast.makeText(this, R.string.invalid_qr, Toast.LENGTH_LONG).show();
-        }
+        String data = result.getText();
+        addContact(data);
     }
 
     @Override

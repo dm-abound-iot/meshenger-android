@@ -61,7 +61,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
         return view;
     }
 
-    void refreshEventList() {
+    public void refreshEventList() {
         Log.d(TAG, "refreshEventList");
 
         if (this.mainActivity == null) {
@@ -71,7 +71,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
 
         new Handler(getMainLooper()).post(() -> {
             List<Event> events = MainService.instance.getEvents().getEventListCopy();
-            List<Contact> contacts = MainService.instance.getContacts().getContactListCopy(); // EventListFragment.this.mainActivity.binder.getContactsCopy();
+            List<Contact> contacts = MainService.instance.getContacts().getContactListCopy();
 
             Log.d(TAG, "refreshEventList update: " + events.size());
             eventListAdapter.update(events, contacts);
@@ -85,7 +85,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
                 String add = res.getString(R.string.add);
                 String block = res.getString(R.string.block);
                 String unblock = res.getString(R.string.unblock);
-                Contact contact = MainService.instance.getContacts().getContactByPublicKey(event.pubKey); // EventListFragment.this.mainActivity.binder.getContactByPublicKey(event.pubKey);
+                Contact contact = MainService.instance.getContacts().getContactByPublicKey(event.publicKey);
 
                 // allow to add unknown caller
                 if (contact == null) {
@@ -120,7 +120,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
     }
 
     private void setBlocked(Event event, boolean blocked) {
-        Contact contact = MainService.instance.getContacts().getContactByPublicKey(event.pubKey);
+        Contact contact = MainService.instance.getContacts().getContactByPublicKey(event.publicKey);
         if (contact != null) {
             contact.setBlocked(blocked);
             MainService.instance.saveDatabase();
@@ -152,9 +152,9 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
                 return;
             }
 
-            String address = getGeneralizedAddress(event.address);
+            String address = getGeneralizedAddress(InetSocketAddress.createUnresolved(event.address, 0).getAddress());
             MainService.instance.getContacts().addContact(
-                new Contact(name, event.pubKey, Arrays.asList(address))
+                new Contact(name, event.publicKey, Arrays.asList(address), false)
             );
 
             Toast.makeText(this.mainActivity, R.string.done, Toast.LENGTH_SHORT).show();
@@ -192,8 +192,8 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
         Log.d(TAG, "onItemClick");
         Event event = this.eventListAdapter.getItem(i);
 
-        String address = getGeneralizedAddress(event.address);
-        Contact contact = new Contact("", event.pubKey, Arrays.asList(address));
+        String address = getGeneralizedAddress(InetSocketAddress.createUnresolved(event.address, 0).getAddress());
+        Contact contact = new Contact("", event.publicKey, Arrays.asList(address), false);
         contact.setLastWorkingAddress(InetSocketAddress.createUnresolved(address, MainService.serverPort));
         contact.addAddress(address);
         if (DirectRTCClient.createOutgoingCall(contact)) {

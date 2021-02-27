@@ -34,7 +34,7 @@ import d.d.meshenger.Crypto;
 import d.d.meshenger.MainService;
 
 /*
-
+ * Handle socket connection to exchange connection details
 */
 public class DirectRTCClient extends Thread implements AppRTCClient {
     private static final String TAG = "DirectRTCClient";
@@ -56,8 +56,8 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
     private enum ConnectionState { NEW, CONNECTED, CLOSED, ERROR }
     public enum CallDirection { INCOMING, OUTGOING };
 
-    // All alterations of the room state should be done from inside the looper thread.
-    private ConnectionState roomState;
+    // only set in executor (or ctor)
+    private ConnectionState connectionState;
 
     public DirectRTCClient(@Nullable final SocketWrapper socket, final Contact contact, final CallDirection callDirection) {
         this.socket = socket;
@@ -65,7 +65,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
         this.callDirection = callDirection;
         this.socketLock = new Object();
         this.executor = Executors.newSingleThreadExecutor();
-        this.roomState = ConnectionState.NEW;
+        this.connectionState = ConnectionState.NEW;
         this.ownSecretKey = MainService.instance.getSettings().getSecretKey();
         this.ownPublicKey = MainService.instance.getSettings().getPublicKey();
         executorThreadCheck = new ThreadUtils.ThreadChecker();
@@ -84,39 +84,68 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
         return callDirection;
     }
 
-    private static Socket establishConnection(InetSocketAddress[] addresses, int timeout) {
+    // numerical presentation of how high-level an error is
+    private static int getExceptionLevel(Exception e) {
+        if (e instanceof ConnectException) {
+            // connection went wrong
+            return 3;
+        }
+        if (e instanceof SocketTimeoutException) {
+            // no connection at all
+            return 2;
+        }
+        if (e instanceof IOException) {
+            // internal error while gettting streams?
+            return 1;
+        }
+        return 0;
+    }
+
+    private SocketWrapper establishConnection(InetSocketAddress[] addresses, int timeout) {
+        Exception errorException = null;
+        InetSocketAddress errorAddress = null;
+        SocketWrapper socket = null;
+
         for (InetSocketAddress address : addresses) {
             Log.d(TAG, "try address: '" + address.getAddress() + "', port: " + address.getPort());
-            Socket socket = new Socket();
+            Socket rawSocket = new Socket();
             try {
-                // timeout to establish connection
-                socket.connect(address, timeout);
-                return socket;
-            } catch (SocketTimeoutException e) {
-                Log.d(TAG, "SocketTimeoutException: " + e);
-                // ignore
-            } catch (ConnectException e) {
-                // device is online, but does not listen on the given port
-                Log.d(TAG, "ConnectException: " + e); // probably "Connection refused"
+                rawSocket.connect(address, timeout);
+                socket = new SocketWrapper(rawSocket);
+                errorException = null;
+                errorAddress = null;
+                // successful connection - abort
+                break;
             } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-            try {
-                Log.d(TAG, "close socket()");
-                socket.close();
-            } catch (Exception e) {
-            // ignore
+                if (getExceptionLevel(e) >= getExceptionLevel(errorException)) {
+                    errorException = e;
+                    errorAddress = address;
+                }
+                try {
+                    rawSocket.close();
+                } catch (IOException ioe) {
+                    // ignore
+                }
             }
         }
 
-      return null;
+        if (socket == null) {
+            if (errorException != null) {
+                reportError(errorException.getMessage() + "\n(" + errorAddress.getHostString() + ")");
+            } else {
+                reportError("Connection failed.");
+            }
+        }
+
+        return socket;
     }
+
 /*
     private void addCallEvent(Event.CallType callType) {
         MainService.instance.getEvents().addEvent(contact, callDirection, callType);
     }
 */
+
     @Override
     public void run() {
         Log.d(TAG, "Listening thread started...");
@@ -147,57 +176,29 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
                 return;
             }
 
-            //synchronized (socketLock) {
-            try {
-                Log.d(TAG, "Create outgoing socket");
-                assert(contact != null);
-                assert(socket == null);
+            Log.d(TAG, "Create outgoing socket");
+            assert(contact != null);
+            assert(socket == null);
 
-                InetSocketAddress[] addresses = AddressUtils.getAllSocketAddresses(
-                        contact.getAddresses(), contact.getLastWorkingAddress(), MainService.serverPort);
-                Socket socket = establishConnection(addresses, 500 /* connection timeout ms */);
-                // Connecting failed, error has already been reported, just exit.
-                if (socket == null) {
-                    reportError("Connection failed.");
-                    return;
-                }
+            InetSocketAddress[] addresses = AddressUtils.getAllSocketAddresses(
+                    contact.getAddresses(), contact.getLastWorkingAddress(), MainService.serverPort);
+            this.socket = establishConnection(addresses, 500);
 
-                this.socket = new SocketWrapper(socket);
-
-                //out = new PacketWriter(socket.getOutputStream());
-                //in = new PacketReader(socket.getInputStream());
-
-                executor.execute(() -> {
-                    sendMessage("{\"type\":\"call\"}");
-                });
-            } catch (IOException e) {
+            if (this.socket == null) {
                 disconnectSocket();
-                //disconnectFromRoom();
-                reportError("Failed to open IO on rawSocket: " + e.getMessage());
                 return;
             }
-            //}
+            executor.execute(() -> {
+                sendMessage("{\"type\":\"call\"}");
+            });
         } else {
             assert(callDirection == CallDirection.INCOMING);
             assert(contact != null);
             assert(socket != null);
-/*
-            //synchronized (socketLock) {
-            try {
-                out = new PacketWriter(socket.getOutputStream());
-                in = new PacketReader(socket.getInputStream());
-            } catch (IOException e) {
-                disconnectSocket();
-                //disconnectFromRoom();
-                reportError("Failed to open IO on rawSocket: " + e.getMessage());
-                this.roomState = ConnectionState.ERROR;
-                return;
-            }
-            //}
-*/
+
             Log.v(TAG, "Execute onConnectedToRoom");
             executor.execute(() -> {
-                roomState = ConnectionState.CONNECTED;
+                connectionState = ConnectionState.CONNECTED;
 
                 SignalingParameters parameters = new SignalingParameters(
                     // Ice servers are not needed for direct connections.
@@ -214,9 +215,8 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
             });
         }
 
-        Log.v(TAG, "done so far");
-
         InetSocketAddress remote_address = (InetSocketAddress) socket.getRemoteSocketAddress();
+
         // remember last good address (the outgoing port is random and not the server port)
         contact.setLastWorkingAddress(
             new InetSocketAddress(remote_address.getAddress(), MainService.serverPort)
@@ -225,10 +225,8 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
         // read data
         while (true) {
             final byte[] message;
-            //final String message;
             try {
-                Log.d(TAG, "in.readMessage()");
-                message = /*in.readLine(); */ this.socket.readMessage();
+                message = this.socket.readMessage();
             } catch (IOException e) {
                 //synchronized (socketLock) {
                     // If socket was closed, this is expected.
@@ -236,7 +234,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
                 //        break;
                 //    }
                 //}
-
+                reportError("Connection failed: " + e); // hangup or connection was lost?
                 // using reportError will cause the executor.shutdown() and also assignment of a task afterwards
                 Log.d(TAG, "Failed to read from rawSocket: " + e.getMessage());
                 break;
@@ -267,20 +265,15 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
         disconnectSocket();
     }
 
-    /** Closes the rawSocket if it is still open. Also fires the onTCPClose event. */
-
     private void disconnectSocket() {
         try {
             synchronized (socketLock) {
-                //roomState = ConnectionState.CLOSED;
                 if (socket != null) {
                     socket.close();
                     socket = null;
-                    //out = null;
 
                     executor.execute(() -> {
                         events.onChannelClose();
-                        ///*eventListener.*/onTCPClose();
                     });
                 }
             }
@@ -289,16 +282,8 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
         }
     }
 
-    /**
-    * Connects to the room, roomId in connectionsParameters is required. roomId must be a valid
-    * IP address matching IP_PATTERN.
-    */
-
     @Override
-    public void connectToRoom(/*String address, int port*/) {
-        //this.address = address;
-        //this.port = port;
-
+    public void connectToRoom() {
         executor.execute(() -> {
           connectToRoomInternal();
         });
@@ -311,42 +296,11 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
         });
     }
 
-    /**
-    * Connects to the room.
-    *
-    * Runs on the looper thread.
-    */
     private void connectToRoomInternal() {
-        this.roomState = ConnectionState.NEW;
-/*
-    String endpoint = connectionParameters.roomId;
+        executorThreadCheck.checkIsOnValidThread();
+        this.connectionState = ConnectionState.NEW;
 
-    Matcher matcher = IP_PATTERN.matcher(endpoint);
-    if (!matcher.matches()) {
-      reportError("roomId must match IP_PATTERN for DirectRTCClient.");
-      return;
-    }
-
-    String ip = matcher.group(1);
-    String portStr = matcher.group(matcher.groupCount());
-    int port;
-
-    if (portStr != null) {
-      try {
-        port = Integer.parseInt(portStr);
-      } catch (NumberFormatException e) {
-        reportError("Invalid port number: " + portStr);
-        return;
-      }
-    } else {
-      port = DEFAULT_PORT;
-    }
-*/
-        //tcpClient = MainService.currentCall; // my addition
-        //tcpClient = new TCPChannelClient.TCPSocketClient(executor, this /*, this.address, this.port*/ /*, DEFAULT_PORT*/);
-        //tcpClient.start();
-
-        // start thread / starts run() method
+        // start thread and run()
         if (!this.isAlive()) {
             this.start();
         } else {
@@ -354,19 +308,12 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
         }
     }
 
-    /**
-    * Disconnects from the room.
-    *
-    * Runs on the looper thread.
-    */
     private void disconnectFromRoomInternal() {
         executorThreadCheck.checkIsOnValidThread();
-        roomState = ConnectionState.CLOSED;
+        connectionState = ConnectionState.CLOSED;
 
-        //if (tcpClient != null) {
-        /*tcpClient.*/disconnectSocket();
-        //  tcpClient = null;
-        //}
+        disconnectSocket();
+
         Log.d(TAG, "shutdown executor");
         executor.shutdown();
     }
@@ -377,7 +324,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
             Log.e(TAG, "we send offer as client?");
         }
         executor.execute(() -> {
-            if (roomState != ConnectionState.CONNECTED) {
+            if (connectionState != ConnectionState.CONNECTED) {
                 reportError("Sending offer SDP in non connected state.");
                 return;
             }
@@ -407,7 +354,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
             jsonPut(json, "id", candidate.sdpMid);
             jsonPut(json, "candidate", candidate.sdp);
 
-            if (roomState != ConnectionState.CONNECTED) {
+            if (connectionState != ConnectionState.CONNECTED) {
                 reportError("Sending ICE candidate in non connected state.");
                 return;
             }
@@ -427,7 +374,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
             }
             jsonPut(json, "candidates", jsonArray);
 
-            if (roomState != ConnectionState.CONNECTED) {
+            if (connectionState != ConnectionState.CONNECTED) {
                 reportError("Sending ICE candidate removals in non connected state.");
                 return;
             }
@@ -436,7 +383,6 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
     }
 
     private void onTCPMessage(String msg) {
-        //String msg = ""; // dummy
         Log.d(TAG, "onTCPMessage: " + msg);
         try {
             JSONObject json = new JSONObject(msg);
@@ -457,11 +403,11 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
                 if (callDirection != CallDirection.INCOMING) {
                     Log.e(TAG, "Dang, we are the client but got an answer?");
                     reportError("Unexpected answer: " + msg);
+                } else {
+                    SessionDescription sdp = new SessionDescription(
+                    SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
+                    events.onRemoteDescription(sdp);
                 }
-
-                SessionDescription sdp = new SessionDescription(
-                SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
-                events.onRemoteDescription(sdp);
             } else if (type.equals("offer")) {
                 SessionDescription sdp = new SessionDescription(
                 SessionDescription.Type.fromCanonicalForm(type), json.getString("sdp"));
@@ -469,21 +415,21 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
                 if (callDirection != CallDirection.OUTGOING) {
                     Log.e(TAG, "Dang, we are the server but got an offer?");
                     reportError("Unexpected offer: " + msg);
+                } else {
+                    SignalingParameters parameters = new SignalingParameters(
+                        // Ice servers are not needed for direct connections.
+                        new ArrayList<>(),
+                        false, // This code will only be run on the client side. So, we are not the initiator.
+                        null, // clientId
+                        null, // wssUrl
+                        null, // wssPostUrl
+                        sdp, // offerSdp
+                        null // iceCandidates
+                    );
+                    connectionState = ConnectionState.CONNECTED;
+                    // call to CallActivity
+                    events.onConnectedToRoom(parameters);
                 }
-
-                SignalingParameters parameters = new SignalingParameters(
-                    // Ice servers are not needed for direct connections.
-                    new ArrayList<>(),
-                    false, // This code will only be run on the client side. So, we are not the initiator.
-                    null, // clientId
-                    null, // wssUrl
-                    null, // wssPostUrl
-                    sdp, // offerSdp
-                    null // iceCandidates
-                );
-                roomState = ConnectionState.CONNECTED;
-                // call to CallActivity
-                events.onConnectedToRoom(parameters);
             } else {
                 reportError("Unexpected message: " + msg);
             }
@@ -492,24 +438,13 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
         }
     }
 
-/*
-    //@Override
-    private void onTCPError(String description) {
-        reportError("TCP connection error: " + description);
-    }
-
-    //@Override
-    private void onTCPClose() {
-        events.onChannelClose();
-    }
-*/
     // --------------------------------------------------------------------
     // Helper functions.
     private void reportError(final String errorMessage) {
-        Log.e(TAG, errorMessage + " (" + roomState.name() + ")");
+        Log.e(TAG, errorMessage + " (" + connectionState.name() + ")");
         executor.execute(() -> {
-            if (roomState != ConnectionState.ERROR) {
-                roomState = ConnectionState.ERROR;
+            if (connectionState != ConnectionState.ERROR) {
+                connectionState = ConnectionState.ERROR;
                 events.onChannelError(errorMessage);
             }
         });
@@ -517,22 +452,19 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
 
     private void sendMessage(final String message) {
         executorThreadCheck.checkIsOnValidThread();
-        //executor.execute(() -> {
-            byte[] encrypted = Crypto.encryptMessage(message, contact.getPublicKey(), ownPublicKey, ownSecretKey);
-            synchronized (socketLock) {
-                if (this.socket == null) { //roomState != ConnectionState.CONNECTED) {
-                    reportError("Sending data on closed socket.");
-                    return;
-                }
-
-                try {
-                    this.socket.writeMessage(encrypted);
-                } catch (IOException e) {
-                    reportError("Failed to write message: " + e);
-                }
+        byte[] encrypted = Crypto.encryptMessage(message, contact.getPublicKey(), ownPublicKey, ownSecretKey);
+        synchronized (socketLock) {
+            if (this.socket == null) {
+                reportError("Sending data on closed socket.");
+                return;
             }
-            ///*tcpClient.*/send(message);
-        //});
+
+            try {
+                this.socket.writeMessage(encrypted);
+            } catch (IOException e) {
+                reportError("Failed to write message: " + e);
+            }
+        }
     }
 
     // Put a |key|->|value| mapping in |json|.
@@ -601,10 +533,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
             byte[] ownSecretKey = MainService.instance.getSettings().getSecretKey();
             byte[] ownPublicKey = MainService.instance.getSettings().getPublicKey();
 
-            // hm, need to pass on streams?
             SocketWrapper socket = new SocketWrapper(rawSocket);
-            //PacketWriter pw = new PacketWriter(socket.getOutputStream());
-            //PacketReader pr = new PacketReader(socket.getInputStream());
 
             Log.d(TAG, "readMessage");
             byte[] request = socket.readMessage();
@@ -634,7 +563,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
                 }
 
                 // unknown caller
-                contact = new Contact("" /* unknown caller */, clientPublicKeyOut.clone(), new ArrayList<>());
+                contact = new Contact("" /* unknown caller */, clientPublicKeyOut.clone(), new ArrayList<>(), false);
             } else {
                 if (contact.getBlocked()) {
                     Log.d(TAG, "blocked contact => decline");

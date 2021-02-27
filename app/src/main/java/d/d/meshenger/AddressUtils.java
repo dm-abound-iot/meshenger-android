@@ -43,12 +43,12 @@ public class AddressUtils {
                     address_set.add(InetSocketAddress.createUnresolved(address, port));
                 }
             } catch (Exception e) {
-                Log.e(TAG, "invalid address: " + address);
+                Log.e(TAG, "Invalid address: " + address);
                 e.printStackTrace();
             }
         }
 
-        // sort addresses, prefer last successful address and IPv6
+        // sort addresses
         InetSocketAddress[] address_array = address_set.toArray(new InetSocketAddress[0]);
         Arrays.sort(address_array, (InetSocketAddress lhs, InetSocketAddress rhs) -> {
             InetAddress rhs_addr = lhs.getAddress();
@@ -64,31 +64,33 @@ public class AddressUtils {
                 }
             }
 
-            if (lhs_addr instanceof Inet6Address) {
-                Inet6Address lhs_addr6 = (Inet6Address) lhs_addr;
-                if (rhs_addr instanceof Inet6Address) {
-                    Inet6Address rhs_addr6 = (Inet6Address) rhs_addr;
-                    if (lhs_addr6.isAnyLocalAddress()) {
-                        return -1;
-                    }
-                    return 1;
-                }
-                if (rhs_addr instanceof Inet4Address) {
-                    return -1;
-                }
+            if (lhs.isUnresolved() && !rhs.isUnresolved()) {
+                return -1;
             }
-            if (lhs_addr instanceof Inet4Address) {
-                Inet4Address lhs_addr4 = (Inet4Address) lhs_addr;
-                if (rhs_addr instanceof Inet6Address) {
-                    return 1;
-                }
-                if (rhs_addr instanceof Inet4Address) {
-                    Inet4Address rhs_addr4 = (Inet4Address) rhs_addr;
-                    return 1;
-                }
+            if (!lhs.isUnresolved() && rhs.isUnresolved()) {
+                return 1;
             }
 
-            return 0;
+            int lhs_proto = getAddressProtocolValue(lhs_addr);
+            int rhs_proto = getAddressProtocolValue(rhs_addr);
+
+            if (lhs_proto < rhs_proto) {
+                return -1;
+            }
+            if (lhs_proto > rhs_proto) {
+                return 1;
+            }
+
+            int lhs_scope = getAddressScopeValue(lhs_addr);
+            int rhs_scope = getAddressScopeValue(rhs_addr);
+
+            if (lhs_scope < rhs_scope) {
+                return -1;
+            } else if (lhs_scope > rhs_scope) {
+                return 1;
+            } else {
+                return 0;
+            }
         });
 
         for (InetSocketAddress address : address_array) {
@@ -129,6 +131,49 @@ public class AddressUtils {
 
         return addressList;
     }
+
+    private static int getAddressProtocolValue(InetAddress addr) {
+        if (addr instanceof Inet6Address) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    private static int getAddressScopeValue(InetAddress addr) {
+        if (addr.isLoopbackAddress()) {
+            return 0;
+        }
+
+        if (addr.isLinkLocalAddress()) {
+            return 1;
+        }
+
+        if (addr.isSiteLocalAddress()) {
+            return 2;
+        }
+
+        if (addr.isMulticastAddress()) {
+            if (addr.isMCGlobal()) {
+                return 3;
+            }
+            if (addr.isMCLinkLocal()) {
+                return 4;
+            }
+            if (addr.isMCNodeLocal()) {
+                return 5;
+            }
+            if (addr.isMCOrgLocal()) {
+                return 6;
+            }
+            if (addr.isMCSiteLocal()) {
+                return 7;
+            }
+        }
+
+        return 8;
+    }
+
 
     // list all IP/MAC addresses of running network interfaces
     // for debugging only

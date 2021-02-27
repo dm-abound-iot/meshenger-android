@@ -68,7 +68,7 @@ class EventListAdapter extends ArrayAdapter<Event> {
         // find name
         String name = "";
         for (Contact contact : this.contacts) {
-            if (Arrays.equals(contact.getPublicKey(), event.pubKey)) {
+            if (Arrays.equals(contact.getPublicKey(), event.publicKey)) {
                 name = contact.getName();
                 break;
             }
@@ -120,7 +120,7 @@ class EventListAdapter extends ArrayAdapter<Event> {
 
         TextView address_tv = view.findViewById(R.id.call_address);
         if (event.address != null) {
-            address_tv.setText("(" + event.address.getHostAddress() + ")");
+            address_tv.setText("(" + event.address + ")");
         } else {
             address_tv.setText("");
         }

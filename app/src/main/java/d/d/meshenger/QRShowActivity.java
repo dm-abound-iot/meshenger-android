@@ -51,7 +51,7 @@ public class QRShowActivity extends MeshengerActivity {
 
         findViewById(R.id.fabShare).setOnClickListener(view -> {
             if (this.contact != null) try {
-                String data = Contact.exportJSON(this.contact, false).toString();
+                String data = Contact.toJSON(this.contact).toString();
                 Intent i = new Intent(Intent.ACTION_SEND);
                 i.putExtra(Intent.EXTRA_TEXT, data);
                 i.setType("text/plain");
@@ -77,7 +77,7 @@ public class QRShowActivity extends MeshengerActivity {
             this.contact = MainService.instance.getSettings().getOwnContact();
         }
 
-        String data = Contact.exportJSON(this.contact, false).toString();
+        String data = Contact.toJSON(this.contact).toString();
         MultiFormatWriter multiFormatWriter = new MultiFormatWriter();
         BitMatrix bitMatrix = multiFormatWriter.encode(data, BarcodeFormat.QR_CODE, 1080, 1080);
         BarcodeEncoder barcodeEncoder = new BarcodeEncoder();

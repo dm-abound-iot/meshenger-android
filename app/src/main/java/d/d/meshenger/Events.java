@@ -1,6 +1,10 @@
 package d.d.meshenger;
 
-import java.net.InetSocketAddress;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,13 +31,40 @@ public class Events {
     }
 
     public void addEvent(Contact contact, DirectRTCClient.CallDirection callDirection, Event.CallType callType) {
-        InetSocketAddress last_working = contact.getLastWorkingAddress();
-        events.add(new Event(
-            contact.getPublicKey(),
-                (last_working != null) ? last_working.getAddress() : null,
-            callDirection,
-            callType
-        ));
-        //LocalBroadcastManager.getInstance(this.service).sendBroadcast(new Intent("refresh_event_list"));
+        InetAddress address = (contact.getLastWorkingAddress() != null)
+            ? contact.getLastWorkingAddress().getAddress() : null;
+        Event event = new Event(contact.getPublicKey(), address.toString(), callDirection, callType);
+
+        if (events.size() > 100) {
+            // remove first item
+            events.remove(0);
+        }
+
+        events.add(event);
+    }
+
+    public static Events fromJSON(JSONObject obj) throws JSONException {
+        Events events = new Events();
+
+        JSONArray array = obj.getJSONArray("entries");
+        for (int i = 0; i < array.length(); i += 1) {
+            events.events.add(
+                Event.fromJSON(array.getJSONObject(i))
+            );
+        }
+
+        return events;
+    }
+
+    public static JSONObject toJSON(Events events) throws JSONException {
+        JSONObject obj = new JSONObject();
+
+        JSONArray array = new JSONArray();
+        for (Event event : events.events) {
+            array.put(Event.toJSON(event));
+        }
+        obj.put("entries", array);
+
+        return obj;
     }
 }

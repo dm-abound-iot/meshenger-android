@@ -21,6 +21,8 @@ import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+import android.widget.Toast;
+
 import org.json.JSONException;
 import java.util.List;
 
@@ -217,12 +219,12 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
         }
     }
 
-    private void shareContact(Contact c) {
+    private void shareContact(Contact contact) {
         Log.d(TAG, "shareContact");
         try {
             Intent intent = new Intent(Intent.ACTION_SEND);
             intent.setType("text/plain");
-            intent.putExtra(Intent.EXTRA_TEXT, Contact.exportJSON(c, false).toString());
+            intent.putExtra(Intent.EXTRA_TEXT, Contact.toJSON(contact).toString());
             startActivity(intent);
         } catch (JSONException e) {
             e.printStackTrace();
@@ -231,6 +233,8 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
 
     private void showContactEditDialog(byte[] publicKey, String name) {
         Log.d(TAG, "showContactEditDialog");
+
+        Contact contact = MainService.instance.getContacts().getContactByPublicKey(publicKey);
         EditText et = new EditText(this.mainActivity);
         et.setText(name);
         AlertDialog dialog = new AlertDialog.Builder(this.mainActivity)
@@ -238,14 +242,20 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
             .setView(et)
             .setNegativeButton(getResources().getString(R.string.cancel), null)
             .setPositiveButton(R.string.ok, (DialogInterface dialogInterface, int i) -> {
-                String newName = et.getText().toString();
-                if (newName.length() > 0) {
-                    Contact contact = MainService.instance.getContacts().getContactByPublicKey(publicKey);
-                    if (contact != null) {
+                String newName = et.getText().toString().trim();
+                if (newName.equals(contact.getName())) {
+                    // nothing to do
+                    return;
+                } else if (Utils.isValidContactName(newName)) {
+                    if (null != MainService.instance.getContacts().getContactByName(newName)) {
+                        Toast.makeText(getContext(), "A contact with that name already exists.", Toast.LENGTH_SHORT).show();
+                    } else {
                         contact.setName(newName);
-                        MainService.instance.getContacts().addContact(contact);
+                        MainService.instance.saveDatabase();
                         refreshContactListBroadcast();
                     }
+                } else {
+                    Toast.makeText(getContext(), "Invalid name.", Toast.LENGTH_SHORT).show();
                 }
             }).show();
     }
