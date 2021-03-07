@@ -24,18 +24,21 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager.LayoutParams;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.core.app.ActivityCompat;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import d.d.meshenger.Event;
 import d.d.meshenger.MeshengerActivity;
 import d.d.meshenger.Utils;
 import d.d.meshenger.call.AppRTCAudioManager.AudioDevice;
@@ -72,9 +75,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
                                                       PeerConnectionClient.PeerConnectionEvents,
                                                       CallFragment.OnCallEvents {
   private static final String TAG = "CallActivity";
-  //private static final int CAPTURE_PERMISSION_REQUEST_CODE = 1;
 
-  // TODO: use
   private static final int INTERNET_PERMISSION_REQUEST_CODE = 2;
   private static final int RECORD_AUDIO_PERMISSION_REQUEST_CODE = 3;
   private static final int MODIFY_AUDIO_SETTINGS_PERMISSION_REQUEST_CODE = 4;
@@ -107,7 +108,8 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
 
   private final ProxyVideoSink remoteProxyRenderer = new ProxyVideoSink();
   private final ProxyVideoSink localProxyVideoSink = new ProxyVideoSink();
-  @Nullable private PeerConnectionClient peerConnectionClient;
+  @Nullable
+  private PeerConnectionClient peerConnectionClient;
   @Nullable
   private DirectRTCClient appRtcClient;
   @Nullable
@@ -135,11 +137,12 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
   // Controls
   private CallFragment callFragment;
   private HudFragment hudFragment;
-  //private CpuMonitor cpuMonitor; //statsFragment
   private EglBase eglBase; //temporary
 
   private Vibrator vibrator;
   private Ringtone ringtone;
+
+  private Event.CallType callType = Event.CallType.UNKNOWN;
 
   @Override
   // TODO(bugs.webrtc.org/8580): LayoutParams.FLAG_TURN_SCREEN_ON and
@@ -254,20 +257,11 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     }
 */
 
-/*
-    // Create CPU monitor
-    if (CpuMonitor.isSupported()) {
-      cpuMonitor = new CpuMonitor(this);
-      hudFragment.setCpuMonitor(cpuMonitor);
-    }
-*/
     // Activate call and HUD fragments and start the call.
     FragmentTransaction ft = getFragmentManager().beginTransaction();
     ft.add(R.id.call_fragment_container, callFragment);
     ft.add(R.id.hud_fragment_container, hudFragment);
     ft.commit();
-
-// my addition
 
     appRtcClient = DirectRTCClient.getCurrentCall();
 
@@ -278,33 +272,31 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
 
     appRtcClient.setEventListener(this);
 
+    callFragment.update(false, peerConnectionParameters);
+    callType = Event.CallType.MISSED;
+
     switch (appRtcClient.getCallDirection()) {
     case INCOMING:
         callFragment.setCallStatus(getResources().getString(R.string.call_connecting));
         Log.d(TAG, "Incoming call");
-      // TODO: use blockUnknown and Contact.isBlocked()
 
-      // Incoming Call, socket is set
       if (MainService.instance.getSettings().getAutoAcceptCall()) {
-        startCall(); // calls appRtcClient.connectToRoom(); => starts connect thread()
+        startCall();
       } else {
         // start ringing and wait for connect call
         Log.d(TAG, "start ringing");
         startRinging();
         //fullscreenRenderer.setBackgroundColor(Color.parseColor("#00aacc"));
-        //startCall(); //TODO: remove...
       }
       break;
     case OUTGOING:
       callFragment.setCallStatus(getResources().getString(R.string.call_ringing));
       Log.d(TAG, "Outgoing call");
 
-      // Outgoing Call, contact is set
       if (MainService.instance.getSettings().getAutoConnectCall()) {
-        startCall(); // calls appRtcClient.connectToRoom(); => starts connect thread()
+        startCall();
       } else {
         Log.d(TAG, "wait for explicit button call to start call");
-        // wait for explicit connect button press to start call
       }
       break;
     default:
@@ -313,36 +305,40 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     }
   }
 
-  private void checkPermissions(PeerConnectionParameters peerConnectionParameters) {
-      Log.d(TAG, "checkPermissions");
+    private void checkPermissions(PeerConnectionParameters peerConnectionParameters) {
+        Log.d(TAG, "checkPermissions");
 
-      if (peerConnectionParameters.recordAudio) {
-          if (!Utils.hasPermission(this, Manifest.permission.RECORD_AUDIO)) {
-              ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_PERMISSION_REQUEST_CODE);
-              return;
-          }
-      }
+        if (peerConnectionParameters.recordAudio) {
+            if (!Utils.hasPermission(this, Manifest.permission.RECORD_AUDIO)) {
+                Log.d(TAG, "Ask for RECORD_AUDIO permissions");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.RECORD_AUDIO}, RECORD_AUDIO_PERMISSION_REQUEST_CODE);
+                return;
+            }
+        }
 
-      if (peerConnectionParameters.playAudio) {
-          if (!Utils.hasPermission(this, Manifest.permission.MODIFY_AUDIO_SETTINGS)) {
-              ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.MODIFY_AUDIO_SETTINGS}, MODIFY_AUDIO_SETTINGS_PERMISSION_REQUEST_CODE);
-              return;
-          }
-      }
+        if (peerConnectionParameters.playAudio) {
+            if (!Utils.hasPermission(this, Manifest.permission.MODIFY_AUDIO_SETTINGS)) {
+                Log.d(TAG, "Ask for MODIFY_AUDIO_SETTINGS permissions");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.MODIFY_AUDIO_SETTINGS}, MODIFY_AUDIO_SETTINGS_PERMISSION_REQUEST_CODE);
+                return;
+            }
+        }
 
-      if (peerConnectionParameters.recordVideo) {
-          if (!Utils.hasPermission(this, Manifest.permission.CAMERA)) {
-              ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
-              return;
-          }
-      }
+        if (peerConnectionParameters.recordVideo) {
+            if (!Utils.hasPermission(this, Manifest.permission.CAMERA)) {
+                Log.d(TAG, "Ask for CAMERA permissions");
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION_REQUEST_CODE);
+                return;
+            }
+        }
 
-      // required!
-      if (!Utils.hasPermission(this, Manifest.permission.INTERNET)) {
-          ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, INTERNET_PERMISSION_REQUEST_CODE);
-          return;
-      }
-  }
+        // required!
+        if (!Utils.hasPermission(this, Manifest.permission.INTERNET)) {
+            Log.d(TAG, "Ask for INTERNET permissions");
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.INTERNET}, INTERNET_PERMISSION_REQUEST_CODE);
+            return;
+        }
+    }
 
   @TargetApi(19)
   private static int getSystemUiVisibility() {
@@ -358,17 +354,17 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     int ringerMode = ((AudioManager) getSystemService(AUDIO_SERVICE)).getRingerMode();
 
     switch (ringerMode) {
-    case AudioManager.RINGER_MODE_NORMAL:
-      Log.d(TAG, "ringerMode: RINGER_MODE_NORMAL");
-      break;
-    case AudioManager.RINGER_MODE_SILENT:
-      Log.d(TAG, "ringerMode: RINGER_MODE_SILENT");
-      break;
-    case AudioManager.RINGER_MODE_VIBRATE:
-      Log.d(TAG, "ringerMode: RINGER_MODE_VIBRATE");
-      break;
-    default:
-      Log.d(TAG, "ringerMode: unknown");
+      case AudioManager.RINGER_MODE_NORMAL:
+        Log.d(TAG, "ringerMode: RINGER_MODE_NORMAL");
+        break;
+      case AudioManager.RINGER_MODE_SILENT:
+        Log.d(TAG, "ringerMode: RINGER_MODE_SILENT");
+        break;
+      case AudioManager.RINGER_MODE_VIBRATE:
+        Log.d(TAG, "ringerMode: RINGER_MODE_VIBRATE");
+        break;
+      default:
+        Log.d(TAG, "ringerMode: unknown");
     }
 
     if (ringerMode == AudioManager.RINGER_MODE_SILENT) {
@@ -401,7 +397,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     ringtone.play();
   }
 
-  private void stopRinging(){
+  private void stopRinging() {
     Log.d(TAG, "stopRinging");
     if (vibrator != null) {
       vibrator.cancel();
@@ -449,9 +445,8 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
           case INTERNET_PERMISSION_REQUEST_CODE:
               if (grantResults[0] != PackageManager.PERMISSION_GRANTED) {
                   Toast.makeText(this, "Internet access required", Toast.LENGTH_LONG).show();
+                  isError = true;
                   disconnect();
-                  //setResult(RESULT_CANCELED);
-                  //finish();
               }
               break;
           default:
@@ -499,44 +494,37 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     return null;
   }
 
-  // Activity interfaces
   @Override
   public void onStop() {
     super.onStop();
     activityRunning = false;
-    // Don't stop the video when using screencapture to allow user to show other apps to the remote
-    // end.
-    if (peerConnectionClient != null /* && !screencaptureEnabled*/) {
+
+    if (peerConnectionClient != null) {
       peerConnectionClient.stopVideoSource();
     }
-    /*
-    if (cpuMonitor != null) {
-      cpuMonitor.pause();
-    }*/
   }
 
   @Override
   public void onStart() {
     super.onStart();
     activityRunning = true;
-    // Video is not paused for screencapture. See onPause.
-    if (peerConnectionClient != null /* && !screencaptureEnabled*/) {
+
+    if (peerConnectionClient != null) {
       peerConnectionClient.startVideoSource();
     }
-    /*
-    if (cpuMonitor != null) {
-      cpuMonitor.resume();
-    }*/
   }
 
   @Override
   protected void onDestroy() {
     Thread.setDefaultUncaughtExceptionHandler(null);
+
     disconnect();
+
     if (logToast != null) {
       logToast.cancel();
     }
     activityRunning = false;
+
     super.onDestroy();
   }
 
@@ -544,12 +532,20 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
   @Override
   public void onCallHangUp() {
     Log.d(TAG, "onCallHangUp");
+
+    if (callType != Event.CallType.ACCEPTED) {
+        callType = Event.CallType.DECLINED;
+    }
+
     disconnect();
   }
 
   @Override
   public void onCallAccept() {
     Log.d(TAG, "onCallAccept");
+
+    callType = Event.CallType.ACCEPTED;
+
     startCall();
   }
 
@@ -581,6 +577,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
   @Override
   public boolean onToggleMic() {
     if (peerConnectionClient != null) {
+      // TODO: set in peerConnectionParameters
       micEnabled = !micEnabled;
       peerConnectionClient.setAudioEnabled(micEnabled);
     }
@@ -606,15 +603,6 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     }
     ft.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
     ft.commit();
-
-/*
-    // TODO: make more elegant
-    if (appRtcClient.getCallDirection() == OUTGOING) {
-      callFragment.onOutgoingCall();
-    } else {
-      callFragment.onIncomingCall();
-    }
-*/
   }
 
   private void startCall() {
@@ -627,6 +615,9 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
       Log.e(TAG, "AppRTC client is not allocated for a call.");
       return;
     }
+
+    callType = Event.CallType.ACCEPTED;
+    callFragment.update(true, peerConnectionParameters);
 
     // Start with local feed in fullscreen and swap it to the pip when the call is connected.
     setSwappedFeeds(true /* isSwappedFeeds */);
@@ -667,7 +658,6 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     });
   }
 
-  // Should be called from UI thread
   private void callConnected() {
       stopRinging();
 
@@ -696,63 +686,89 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
 
   // Disconnect from remote resources, dispose of local resources, and exit.
   private void disconnect() {
+    // read -1; message is null causes:
+    // called from  onChannelClose, onDestroy 
+    Log.d(TAG, "disconnect() from thread " + Thread.currentThread().getName() + " and print stacktrace now: ");
+    // print stack trace as help:
+    Thread.dumpStack();
+
     stopRinging();
+
+    if (isError) {
+        callType = Event.CallType.ERROR;
+    }
+
+    if (appRtcClient != null) {
+        Log.d(TAG, "add event: " + callType.name());
+        MainService.instance.getEvents().addEvent(appRtcClient.getContact(), appRtcClient.getCallDirection(), callType);
+    }
+
     activityRunning = false;
     remoteProxyRenderer.setTarget(null);
     localProxyVideoSink.setTarget(null);
+
     if (appRtcClient != null) {
       logAndToast("appRtcClient.disconnectFromRoom");
       appRtcClient.disconnectFromRoom();
       appRtcClient = null;
       DirectRTCClient.setCurrentCall(null);
     }
+
     if (pipRenderer != null) {
       pipRenderer.release();
       pipRenderer = null;
     }
+
     if (videoFileRenderer != null) {
       videoFileRenderer.release();
       videoFileRenderer = null;
     }
+
     if (fullscreenRenderer != null) {
       fullscreenRenderer.release();
       fullscreenRenderer = null;
     }
+
     if (peerConnectionClient != null) {
       peerConnectionClient.close();
       peerConnectionClient = null;
     }
+
     if (audioManager != null) {
       audioManager.stop();
       audioManager = null;
     }
+
     if (connected && !isError) {
       setResult(RESULT_OK);
     } else {
       setResult(RESULT_CANCELED);
     }
+
+    Log.d(TAG, "finish");
+
     finish();
   }
 
   private void disconnectWithErrorMessage(final String errorMessage) {
-    if (/*commandLineRun ||*/ !activityRunning) {
+    if (!activityRunning) {
       Log.e(TAG, "Critical error: " + errorMessage);
       disconnect();
     } else {
       new AlertDialog.Builder(this)
-              .setTitle("Connection error")
-              .setMessage(errorMessage)
-              .setCancelable(false)
-              .setNeutralButton(R.string.ok,
-                      new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int id) {
-                          dialog.cancel();
-                          disconnect();
-                        }
-                      })
-              .create()
-              .show();
+        .setTitle("Connection error")
+        .setMessage(errorMessage)
+        .setCancelable(false)
+        .setNeutralButton(R.string.ok,
+                new DialogInterface.OnClickListener() {
+                  @Override
+                  public void onClick(DialogInterface dialog, int id) {
+                    dialog.cancel();
+                    disconnect();
+                  }
+                })
+        .create()
+        .show();
     }
   }
 
@@ -776,18 +792,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
 
   private @Nullable VideoCapturer createVideoCapturer() {
     final VideoCapturer videoCapturer;
-    /*
-    String videoFileAsCamera = getIntent().getStringExtra(EXTRA_VIDEO_FILE_AS_CAMERA);
-    if (videoFileAsCamera != null) {
-      try {
-        videoCapturer = new FileVideoCapturer(videoFileAsCamera);
-      } catch (IOException e) {
-        reportError("Failed to open video file for emulated camera");
-        return null;
-      }
-    } else if (screencaptureEnabled) {
-      return createScreenCapturer();
-    } else*/ if (useCamera2()) {
+    if (useCamera2()) {
       if (!captureToTexture()) {
         reportError("Camera2 only supports capturing to texture. Either disable Camera2 or enable capturing to texture in the options.");
         return null;
@@ -822,6 +827,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     final long delta = System.currentTimeMillis() - callStartedTimeMs;
 
     stopRinging();
+
     if (appRtcClient.getContact() != null) {
       callFragment.setContactName(appRtcClient.getContact().getName());
       callFragment.setCallStatus(getResources().getString(R.string.call_connecting));
@@ -862,7 +868,6 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
   // and DirectRTCClient.onTCPMessage (with sdp from offer)
   @Override
   public void onConnectedToRoom(final SignalingParameters params) {
-    // TODO: ringing (if not auto accept)
     runOnUiThread(() -> {
       onConnectedToRoomInternal(params);
     });

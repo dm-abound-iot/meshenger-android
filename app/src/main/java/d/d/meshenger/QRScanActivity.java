@@ -4,14 +4,15 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.support.annotation.NonNull;
 import android.os.Bundle;
-import android.support.v4.content.LocalBroadcastManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.ResultPoint;
@@ -103,12 +104,12 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
 
         // lookup existing contacts by key and name
         Contacts contacts = MainService.instance.getContacts();
-        Contact existing_pubkey_contact = contacts.getContactByPublicKey(contact.getPublicKey());
+        Contact existing_key_contact = contacts.getContactByPublicKey(contact.getPublicKey());
         Contact existing_name_contact = contacts.getContactByName(contact.getName());
 
-        if (existing_pubkey_contact != null) {
+        if (existing_key_contact != null) {
             // contact with that public key exists
-            showPubkeyConflictDialog(contact, existing_pubkey_contact);
+            showPublicKeyConflictDialog(contact, existing_key_contact);
         } else if (existing_name_contact != null) {
             // contact with that name exists
             showNameConflictDialog(contact, existing_name_contact);
@@ -121,9 +122,9 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
         }
     }
 
-    private void showPubkeyConflictDialog(Contact new_contact, Contact old_contact) {
+    private void showPublicKeyConflictDialog(Contact new_contact, Contact old_contact) {
         Dialog dialog = new Dialog(this);
-        dialog.setContentView(R.layout.dialog_add_contact_pubkey_conflict);
+        dialog.setContentView(R.layout.dialog_add_contact_key_conflict);
 
         TextView contactTextView = dialog.findViewById(R.id.NameTextView);
         dialog.setCancelable(false);

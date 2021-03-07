@@ -5,10 +5,6 @@ import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.Fragment;
-import android.support.v7.widget.PopupMenu;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -17,7 +13,13 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.PopupMenu;
 import android.widget.Toast;
+
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -184,6 +186,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
                 return Utils.bytesToMacAddress(mac);
             }
         }
+
         return address.getHostAddress();
     }
 
@@ -192,10 +195,18 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
         Log.d(TAG, "onItemClick");
         Event event = this.eventListAdapter.getItem(i);
 
-        String address = getGeneralizedAddress(InetSocketAddress.createUnresolved(event.address, 0).getAddress());
-        Contact contact = new Contact("", event.publicKey, Arrays.asList(address), false);
-        contact.setLastWorkingAddress(InetSocketAddress.createUnresolved(address, MainService.serverPort));
-        contact.addAddress(address);
+        if (event.address == null) {
+            Toast.makeText(this.getContext(), "No address set for call!", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Contact contact = MainService.instance.getContacts().getContactByPublicKey(event.publicKey);
+        if (contact == null) {
+            String address = getGeneralizedAddress(InetSocketAddress.createUnresolved(event.address, 0).getAddress());
+            contact = new Contact("", event.publicKey, Arrays.asList(address), false);
+            contact.addAddress(address);
+        }
+
         if (DirectRTCClient.createOutgoingCall(contact)) {
             Intent intent = new Intent(getContext(), CallActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

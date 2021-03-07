@@ -6,8 +6,11 @@ import java.net.Socket;
 import java.net.SocketAddress;
 import java.io.IOException;
 
+import d.d.meshenger.Log;
+
 
 class SocketWrapper {
+    private static final String TAG = "SocketWrapper";
     private final Socket socket;
     private final OutputStream os;
     private final InputStream is;
@@ -18,8 +21,12 @@ class SocketWrapper {
         this.is = socket.getInputStream();
     }
 
-    public void close() throws IOException {
-        this.socket.close();
+    public void close() {
+        try {
+            this.socket.close();
+        } catch (IOException e) {
+            Log.w(TAG, "close(): " + e);
+        }
     }
 
     public SocketAddress getRemoteSocketAddress() {
@@ -41,11 +48,10 @@ class SocketWrapper {
     }
 
     public void writeMessage(byte[] message) throws IOException {
-        byte[] header = new byte[4];
-        writeMessageHeader(header, message.length);
-        // need to concatenate?
-        this.os.write(header);
-        this.os.write(message);
+        byte[] packet = new byte[4 + message.length];
+        writeMessageHeader(packet, message.length);
+        System.arraycopy(message, 0, packet, 4, message.length);
+        this.os.write(packet);
         this.os.flush();
     }
 

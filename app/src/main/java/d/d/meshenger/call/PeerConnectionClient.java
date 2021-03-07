@@ -11,8 +11,10 @@
 package d.d.meshenger.call;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
 import android.util.Log;
+
+import androidx.annotation.Nullable;
+
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
@@ -211,7 +213,7 @@ public class PeerConnectionClient {
     public boolean playAudio;
     public boolean recordAudio;
 
-    public final boolean videoCallEnabled;
+    public final boolean videoCallEnabled; // TODO: remove
     public final int videoWidth;
     public final int videoHeight;
     public final int videoFps;

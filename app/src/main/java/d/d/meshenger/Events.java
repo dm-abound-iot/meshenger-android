@@ -6,6 +6,8 @@ import org.json.JSONObject;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import d.d.meshenger.call.DirectRTCClient;
@@ -31,9 +33,9 @@ public class Events {
     }
 
     public void addEvent(Contact contact, DirectRTCClient.CallDirection callDirection, Event.CallType callType) {
-        InetAddress address = (contact.getLastWorkingAddress() != null)
-            ? contact.getLastWorkingAddress().getAddress() : null;
-        Event event = new Event(contact.getPublicKey(), address.toString(), callDirection, callType);
+        InetAddress address = contact.getLastWorkingAddress();
+        String address_str = (address != null) ? address.toString() : null;
+        Event event = new Event(contact.getPublicKey(), address_str, callDirection, callType);
 
         if (events.size() > 100) {
             // remove first item
@@ -52,6 +54,11 @@ public class Events {
                 Event.fromJSON(array.getJSONObject(i))
             );
         }
+
+        // sort by date / oldest first
+        Collections.sort(events.events, (Event lhs, Event rhs) -> {
+            return lhs.date.compareTo(rhs.date);
+        });
 
         return events;
     }

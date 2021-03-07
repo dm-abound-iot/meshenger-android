@@ -3,10 +3,9 @@ package d.d.meshenger;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONArray;
-import org.libsodium.jni.Sodium;
 
 import java.io.Serializable;
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +26,7 @@ public class Contact implements Serializable {
 
     // last working address (use this address next connection
     // and for unknown contact initialization)
-    private InetSocketAddress last_working_address = null;
+    private InetAddress last_working_address = null;
 
     public Contact(String name, byte[] publicKey, List<String> addresses, boolean blocked) {
         this.name = name;
@@ -91,11 +90,11 @@ public class Contact implements Serializable {
 
     // set good address to try first next time,
     // this is not stored in the database
-    public void setLastWorkingAddress(InetSocketAddress address) {
+    public void setLastWorkingAddress(InetAddress address) {
         this.last_working_address = address;
     }
 
-    public InetSocketAddress getLastWorkingAddress() {
+    public InetAddress getLastWorkingAddress() {
         return this.last_working_address;
     }
 

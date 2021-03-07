@@ -24,11 +24,11 @@ import java.util.Set;
 public class AddressUtils {
     private static final String TAG = "AddressUtils";
 
-    public static InetSocketAddress[] getAllSocketAddresses(List<String> initial_addresses, InetSocketAddress last_working_address, int port) {
+    public static InetSocketAddress[] getAllSocketAddresses(List<String> initial_addresses, InetAddress last_working_address, int port) {
         Set<InetSocketAddress> address_set = new HashSet<>();
 
         if (last_working_address != null) {
-            address_set.add(last_working_address);
+            address_set.add(new InetSocketAddress(last_working_address, port));
         }
 
         for (String address : initial_addresses) {
@@ -186,6 +186,8 @@ public class AddressUtils {
     // Check if the given MAC address is in the IPv6 address
     static byte[] getEUI64MAC(Inet6Address addr6) {
         byte[] bytes = addr6.getAddress();
+
+        // check for EUI-64 address
         if (bytes[11] != ((byte) 0xFF) || bytes[12] != ((byte) 0xFE)) {
             return null;
         }
@@ -197,6 +199,7 @@ public class AddressUtils {
         mac[3] = bytes[13];
         mac[4] = bytes[14];
         mac[5] = bytes[15];
+
         return mac;
     }
 

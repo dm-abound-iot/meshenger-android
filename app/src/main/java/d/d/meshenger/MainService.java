@@ -13,21 +13,21 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.ContextCompat;
+import android.text.format.DateUtils;
 import android.widget.Toast;
+
+import androidx.annotation.Nullable;
+import androidx.core.app.NotificationCompat;
+import androidx.core.content.ContextCompat;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Date;
 
 import d.d.meshenger.call.CallActivity;
 import d.d.meshenger.call.DirectRTCClient;
-
-import static android.support.v4.app.NotificationCompat.PRIORITY_MIN;
-import static android.support.v4.app.NotificationCompat.VISIBILITY_PUBLIC;
 
 
 public class MainService extends Service implements Runnable {
@@ -45,7 +45,7 @@ public class MainService extends Service implements Runnable {
     private final IBinder mBinder = new LocalBinder();
 
     public static final int serverPort = 10001;
-    private static final int NOTIFICATION = 42;
+    private static final int NOTIFICATION_ID = 42;
 
     /**
      * Used to check whether the bound activity has really gone away and not unbound as part of an
@@ -78,7 +78,7 @@ public class MainService extends Service implements Runnable {
                 first_start = true;
             }
         } catch (Exception e) {
-            // ignore
+            e.printStackTrace();
         }
     }
 
@@ -160,6 +160,8 @@ public class MainService extends Service implements Runnable {
         }
     }
 
+    private NotificationCompat.Builder notificationBuilder;
+
     private void showNotification() {
         String channelId = "meshenger_service";
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -175,18 +177,44 @@ public class MainService extends Service implements Runnable {
         PendingIntent pendingNotificationIntent = PendingIntent.getActivity(this, 0, notificationIntent, 0);
 
         Context mActivity = getApplicationContext();
-        Notification notification = new NotificationCompat.Builder(mActivity, channelId)
+        notificationBuilder = new NotificationCompat.Builder(mActivity, channelId)
                 .setOngoing(true)
                 .setSmallIcon(R.drawable.ic_logo)
                 .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.logo_small))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setCategory(Notification.CATEGORY_SERVICE)
                 .setContentText(getResources().getText(R.string.listen_for_incoming_calls))
-                .setContentIntent(pendingNotificationIntent)
-                .setVisibility(VISIBILITY_PUBLIC)
-                .build();
+                .setContentIntent(pendingNotificationIntent);
+                //.setVisibility(VISIBILITY_PUBLIC);
 
-        startForeground(NOTIFICATION, notification);
+        startForeground(NOTIFICATION_ID, notificationBuilder.build());
+    }
+
+    void resetNotificationContent() {
+        if (notificationBuilder == null) {
+            return;
+        }
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationBuilder.setContentText(getResources().getText(R.string.listen_for_incoming_calls));
+
+        manager.notify(NOTIFICATION_ID, notificationBuilder.build());
+    }
+
+    void updateNotification(Date missedDate, int showMissedCallsCount) {
+        if (notificationBuilder == null) {
+            return;
+        }
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationBuilder.setContentText(
+            String.valueOf(showMissedCallsCount)
+            + " missed calls"
+            + " - "
+            + DateUtils.getRelativeTimeSpanString(missedDate.getTime(), System.currentTimeMillis(), 0L, DateUtils.FORMAT_ABBREV_ALL)
+        );
+
+        manager.notify(NOTIFICATION_ID, notificationBuilder.build());
     }
 
     final static String START_FOREGROUND_ACTION = "START_FOREGROUND_ACTION";
@@ -213,7 +241,7 @@ public class MainService extends Service implements Runnable {
             showNotification();
         } else if (intent.getAction().equals(STOP_FOREGROUND_ACTION)) {
             Log.d(TAG, "Received Stop Foreground Intent");
-            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIFICATION);
+            ((NotificationManager) getSystemService(NOTIFICATION_SERVICE)).cancel(NOTIFICATION_ID);
             stopForeground(true);
             stopSelf();
         }

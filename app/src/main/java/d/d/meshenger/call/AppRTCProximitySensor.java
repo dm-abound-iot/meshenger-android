@@ -16,8 +16,10 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Build;
-import android.support.annotation.Nullable;
 import android.util.Log;
+
+import androidx.annotation.Nullable;
+
 import org.webrtc.ThreadUtils;
 
 /**
@@ -39,7 +41,8 @@ public class AppRTCProximitySensor implements SensorEventListener {
 
   private final Runnable onSensorStateListener;
   private final SensorManager sensorManager;
-  @Nullable private Sensor proximitySensor;
+  @Nullable
+  private Sensor proximitySensor;
   private boolean lastStateReportIsNear;
 
   /** Construction */

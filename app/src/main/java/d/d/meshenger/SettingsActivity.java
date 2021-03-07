@@ -7,9 +7,7 @@ import android.content.res.TypedArray;
 import android.net.Uri;
 import android.os.Build;
 import android.os.PowerManager;
-import android.support.v7.app.AlertDialog;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatDelegate;
 import android.text.InputType;
 import android.view.View;
 import android.widget.AdapterView;
@@ -20,6 +18,9 @@ import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatDelegate;
 
 import java.util.List;
 

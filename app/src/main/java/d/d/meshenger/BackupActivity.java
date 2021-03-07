@@ -1,25 +1,22 @@
 package d.d.meshenger;
 
-import com.github.isabsent.filepicker.SimpleFilePickerDialog;
-import static com.github.isabsent.filepicker.SimpleFilePickerDialog.CompositeMode.FILE_OR_FOLDER_SINGLE_CHOICE;
+import com.codekidlabs.storagechooser.StorageChooser;
 
 import android.os.Bundle;
-import android.os.Environment;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AlertDialog;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
+
 import java.io.File;
 
 
 public class BackupActivity extends MeshengerActivity implements
-        SimpleFilePickerDialog.InteractionListenerString {
+        StorageChooser.OnSelectListener, StorageChooser.OnCancelListener {
     private static final String TAG = "BackupActivity";
-    private static final String SELECT_PATH_REQUEST = "SELECT_PATH_REQUEST";
     private static final int REQUEST_PERMISSION = 0x01;
     private AlertDialog.Builder builder;
     private Button exportButton;
@@ -40,35 +37,9 @@ public class BackupActivity extends MeshengerActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_backup);
 
-        //bindService();
-        initViews();
-    }
-/*
-    @Override
-    protected void onDestroy() {
-        super.onDestroy();
-        if (this.binder != null) {
-            unbindService(this);
-        }
-    }
-
-    private void bindService() {
-        // ask MainService to get us the binder object
-        Intent serviceIntent = new Intent(this, MainService.class);
-        bindService(serviceIntent, this, Service.BIND_AUTO_CREATE);
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
-        this.binder = (MainService.MainBinder) iBinder;
         initViews();
     }
 
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-        this.binder = null;
-    }
-*/
     private void initViews() {
         builder = new AlertDialog.Builder(this);
         importButton = findViewById(R.id.ImportButton);
@@ -96,8 +67,17 @@ public class BackupActivity extends MeshengerActivity implements
 
         selectButton.setOnClickListener((View v) -> {
             if (Utils.hasReadPermission(BackupActivity.this)) {
-                final String rootPath = Environment.getExternalStorageDirectory().getAbsolutePath();
-                showListItemDialog(getResources().getString(R.string.button_select), rootPath, FILE_OR_FOLDER_SINGLE_CHOICE, SELECT_PATH_REQUEST);
+                StorageChooser chooser = new StorageChooser.Builder()
+                    .withActivity(this)
+                    .withFragmentManager(getFragmentManager())
+                    .allowCustomPath(true)
+                    .setType(StorageChooser.DIRECTORY_CHOOSER)
+                    .build();
+                chooser.show();
+
+                // get path that the user has chosen
+                chooser.setOnSelectListener(this);
+                chooser.setOnCancelListener(this);
             } else {
                 Utils.requestReadPermission(BackupActivity.this, REQUEST_PERMISSION);
             }
@@ -160,32 +140,23 @@ public class BackupActivity extends MeshengerActivity implements
         }
     }
 
-    // path picker
+    // for StorageChooser
     @Override
-    public void showListItemDialog(String title, String folderPath, SimpleFilePickerDialog.CompositeMode mode, String dialogTag) {
-        SimpleFilePickerDialog.build(folderPath, mode)
-                .title(title)
-                .show(this, dialogTag);
+    public void onSelect(String path) {
+        if ((new File(path)).isDirectory()) {
+            // append slash
+            if (!path.endsWith("/")) {
+                path += "/";
+            }
+            path += "meshenger-backup.json";
+        }
+        pathEditText.setText(path);
     }
 
+    // for StorageChooser
     @Override
-    public boolean onResult(@NonNull String dialogTag, int which, @NonNull Bundle extras) {
-        switch (dialogTag) {
-            case SELECT_PATH_REQUEST:
-                if (extras.containsKey(SimpleFilePickerDialog.SELECTED_SINGLE_PATH)) {
-                    String path = extras.getString(SimpleFilePickerDialog.SELECTED_SINGLE_PATH);
-                    if ((new File(path)).isDirectory()) {
-                        // append slash
-                        if (!path.endsWith("/")) {
-                            path += "/";
-                        }
-                        path += "meshenger_backup.json";
-                    }
-                    pathEditText.setText(path);
-                }
-                break;
-        }
-        return false;
+    public void onCancel() {
+        // nothing to do
     }
 
     @Override

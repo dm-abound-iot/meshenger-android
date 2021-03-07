@@ -7,17 +7,19 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.design.widget.TabLayout;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.LocalBroadcastManager;
-import android.support.v4.view.ViewPager;
-import android.support.v4.app.Fragment;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
+
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import androidx.viewpager.widget.ViewPager;
+
+import com.google.android.material.tabs.TabLayout;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -32,7 +34,7 @@ public class MainActivity extends MeshengerActivity {
     private EventListFragment eventListFragment;
     private SectionsPageAdapter sectionsPageAdapter;
     private int currentPage = 0;
-    private Date eventListAccessed;
+    private Date eventListAccessed = new Date();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,8 +50,6 @@ public class MainActivity extends MeshengerActivity {
 
         TabLayout tabLayout = findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
-
-        this.eventListAccessed = new Date();
 
         LocalBroadcastManager.getInstance(this).registerReceiver(refreshEventListReceiver, new IntentFilter("refresh_event_list"));
         LocalBroadcastManager.getInstance(this).registerReceiver(refreshContactListReceiver, new IntentFilter("refresh_contact_list"));
@@ -83,8 +83,6 @@ public class MainActivity extends MeshengerActivity {
 
         contactListFragment.refreshContactList();
         eventListFragment.refreshEventList();
-
-        //MainService.pingContacts();
     }
 
     @Override
@@ -93,7 +91,6 @@ public class MainActivity extends MeshengerActivity {
         Log.d(TAG, "onDestroy");
         LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshEventListReceiver);
         LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshContactListReceiver);
-
     }
 
     @Override

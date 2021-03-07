@@ -1,8 +1,6 @@
 package d.d.meshenger;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.format.DateUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -10,6 +8,9 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
@@ -95,12 +96,16 @@ class EventListAdapter extends ArrayAdapter<Event> {
         if (event.callDirection == INCOMING) {
             switch (event.callType) {
                 case ACCEPTED:
+                    type_iv.setImageResource(R.drawable.ic_incoming_call_accepted);
+                    break;
                 case DECLINED:
-                    type_iv.setImageResource(R.drawable.call_incoming);
+                    type_iv.setImageResource(R.drawable.ic_incoming_call_declined);
                     break;
                 case MISSED:
+                    type_iv.setImageResource(R.drawable.ic_incoming_call_missed);
+                    break;
                 case ERROR:
-                    type_iv.setImageResource(R.drawable.call_incoming_missed);
+                    type_iv.setImageResource(R.drawable.ic_incoming_call_error);
                     break;
             }
         }
@@ -108,12 +113,16 @@ class EventListAdapter extends ArrayAdapter<Event> {
         if (event.callDirection == OUTGOING) {
             switch (event.callType) {
                 case ACCEPTED:
+                    type_iv.setImageResource(R.drawable.ic_outgoing_call_accepted);
+                    break;
                 case DECLINED:
-                    type_iv.setImageResource(R.drawable.call_outgoing);
+                    type_iv.setImageResource(R.drawable.ic_outgoing_call_declined);
                     break;
                 case MISSED:
+                    type_iv.setImageResource(R.drawable.ic_outgoing_call_missed);
+                    break;
                 case ERROR:
-                    type_iv.setImageResource(R.drawable.call_outgoing_missed);
+                    type_iv.setImageResource(R.drawable.ic_outgoing_call_error);
                     break;
             }
         }

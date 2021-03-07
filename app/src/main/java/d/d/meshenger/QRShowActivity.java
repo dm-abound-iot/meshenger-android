@@ -27,8 +27,8 @@ public class QRShowActivity extends MeshengerActivity {
         setContentView(R.layout.activity_qrshow);
 
         if (getIntent().hasExtra("EXTRA_CONTACT")) {
-            byte[] pubKey = getIntent().getExtras().getByteArray("EXTRA_CONTACT");
-            this.contact = MainService.instance.getContacts().getContactByPublicKey(pubKey);
+            byte[] publicKey = getIntent().getExtras().getByteArray("EXTRA_CONTACT");
+            this.contact = MainService.instance.getContacts().getContactByPublicKey(publicKey);
         }
 
         if (this.contact != null) {

@@ -14,8 +14,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.support.v7.app.AlertDialog;
-import android.support.v7.app.AppCompatDelegate;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Gravity;
@@ -27,6 +25,9 @@ import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatDelegate;
 
 import org.libsodium.jni.Sodium;
 import org.libsodium.jni.NaCl;
@@ -301,7 +302,7 @@ public class StartActivity extends MeshengerActivity implements ServiceConnectio
         // override handler (to be able to dismiss the dialog manually)
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener((View v) -> {
             imm.toggleSoftInput(0, InputMethodManager.HIDE_IMPLICIT_ONLY);
-            String username = et.getText().toString();
+            String username = et.getText().toString().trim();
             if (Utils.isValidContactName(username)) {
                 MainService.instance.getSettings().setUsername(username);
                 MainService.instance.saveDatabase();

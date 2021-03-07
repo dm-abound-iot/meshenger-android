@@ -5,11 +5,6 @@ import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.Fragment;
-import android.support.v4.content.LocalBroadcastManager;
-import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -22,6 +17,13 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.Toast;
+
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONException;
 import java.util.List;
@@ -246,17 +248,22 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
                 if (newName.equals(contact.getName())) {
                     // nothing to do
                     return;
-                } else if (Utils.isValidContactName(newName)) {
-                    if (null != MainService.instance.getContacts().getContactByName(newName)) {
-                        Toast.makeText(getContext(), "A contact with that name already exists.", Toast.LENGTH_SHORT).show();
-                    } else {
-                        contact.setName(newName);
-                        MainService.instance.saveDatabase();
-                        refreshContactListBroadcast();
-                    }
-                } else {
-                    Toast.makeText(getContext(), "Invalid name.", Toast.LENGTH_SHORT).show();
                 }
+
+                if (!Utils.isValidContactName(newName)) {
+                    Toast.makeText(getContext(), "Invalid name.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                if (null != MainService.instance.getContacts().getContactByName(newName)) {
+                    Toast.makeText(getContext(), "A contact with that name already exists.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // rename contact
+                contact.setName(newName);
+                MainService.instance.saveDatabase();
+                refreshContactListBroadcast();
             }).show();
     }
 
