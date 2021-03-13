@@ -94,6 +94,9 @@ class Database {
             data = Crypto.encryptDatabase(data, password.getBytes());
         }
 
+        Log.d(TAG, "Stored " + db.contacts.getContactList().size() + " contacts");
+        Log.d(TAG, "Stored " + db.events.getEventList().size() + " events.");
+
         // write database file
         Utils.writeExternalFile(path, data);
     }

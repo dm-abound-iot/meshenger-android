@@ -34,7 +34,6 @@ public class MainActivity extends MeshengerActivity {
     private EventListFragment eventListFragment;
     private SectionsPageAdapter sectionsPageAdapter;
     private int currentPage = 0;
-    private Date eventListAccessed = new Date();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,8 +50,8 @@ public class MainActivity extends MeshengerActivity {
         TabLayout tabLayout = findViewById(R.id.tabs);
         tabLayout.setupWithViewPager(mViewPager);
 
-        LocalBroadcastManager.getInstance(this).registerReceiver(refreshEventListReceiver, new IntentFilter("refresh_event_list"));
-        LocalBroadcastManager.getInstance(this).registerReceiver(refreshContactListReceiver, new IntentFilter("refresh_contact_list"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(eventsChangedReceiver, new IntentFilter("events_changed"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(contactsChangedReceiver, new IntentFilter("contacts_changed"));
 
         // in case the language has changed
         this.sectionsPageAdapter = new SectionsPageAdapter(getSupportFragmentManager());
@@ -71,7 +70,8 @@ public class MainActivity extends MeshengerActivity {
                 Log.d(TAG,  "onPageSelected, position: " + position);
                 MainActivity.this.currentPage = position;
                 if (position == 1) {
-                    MainActivity.this.eventListAccessed = new Date();
+                    MainService.instance.getEvents().setEventsViewedDate();
+                    //updateMissedCallsCounter();
                 }
             }
 
@@ -89,8 +89,8 @@ public class MainActivity extends MeshengerActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshEventListReceiver);
-        LocalBroadcastManager.getInstance(this).unregisterReceiver(refreshContactListReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(eventsChangedReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(contactsChangedReceiver);
     }
 
     @Override
@@ -126,14 +126,10 @@ public class MainActivity extends MeshengerActivity {
         return super.onOptionsItemSelected(item);
     }
 
+    // update missed calls in events fragment title
     private void updateMissedCallsCounter() {
-        int missedCalls = 0;
-        Date since = this.eventListAccessed;
-        for (Event event : MainService.instance.getEvents().getEventList()) {
-            if (event.date.compareTo(since) >= 0 && event.isMissedCall()) {
-                missedCalls += 1;
-            }
-        }
+        int missedCalls = MainService.instance.getEvents()
+            .getMissedCalls().size();
 
         this.sectionsPageAdapter.missedCalls = missedCalls;
         this.mViewPager.setAdapter(this.sectionsPageAdapter);
@@ -141,16 +137,16 @@ public class MainActivity extends MeshengerActivity {
         this.mViewPager.setCurrentItem(this.currentPage);
     }
 
-    private BroadcastReceiver refreshEventListReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver eventsChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "received events_changed");
             eventListFragment.refreshEventList();
-
             updateMissedCallsCounter();
         }
     };
 
-    private BroadcastReceiver refreshContactListReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver contactsChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             contactListFragment.refreshContactList();
@@ -161,6 +157,8 @@ public class MainActivity extends MeshengerActivity {
     protected void onResume() {
         Log.d(TAG, "OnResume");
         super.onResume();
+
+        updateMissedCallsCounter();
 
         checkPermissions(); // TODO: remove
     }

@@ -33,6 +33,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -701,6 +702,7 @@ public class CallActivity extends MeshengerActivity implements DirectRTCClient.S
     if (appRtcClient != null) {
         Log.d(TAG, "add event: " + callType.name());
         MainService.instance.getEvents().addEvent(appRtcClient.getContact(), appRtcClient.getCallDirection(), callType);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("events_changed"));
     }
 
     activityRunning = false;

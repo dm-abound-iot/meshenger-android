@@ -105,7 +105,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
 
     private SocketWrapper establishConnection(InetSocketAddress[] addresses, int timeout) {
         Exception errorException = null;
-        InetSocketAddress errorAddress = null;
+        //InetSocketAddress errorAddress = null;
         SocketWrapper socket = null;
 
         for (InetSocketAddress address : addresses) {
@@ -115,13 +115,13 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
                 rawSocket.connect(address, timeout);
                 socket = new SocketWrapper(rawSocket);
                 errorException = null;
-                errorAddress = null;
+                //errorAddress = null;
                 // successful connection - abort
                 break;
             } catch (Exception e) {
                 if (getExceptionLevel(e) >= getExceptionLevel(errorException)) {
                     errorException = e;
-                    errorAddress = address;
+                    //errorAddress = address;
                 }
                 try {
                     rawSocket.close();
@@ -133,7 +133,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
 
         if (socket == null) {
             if (errorException != null) {
-                reportError(errorException.getMessage() + "\n(" + errorAddress.getHostString() + ")");
+                reportError(errorException.getMessage());
             } else {
                 reportError("Connection failed.");
             }
@@ -178,7 +178,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
 
             InetSocketAddress[] addresses = AddressUtils.getAllSocketAddresses(
                     contact.getAddresses(), contact.getLastWorkingAddress(), MainService.serverPort);
-            socket = establishConnection(addresses, 1000);
+            socket = establishConnection(addresses, 2000);
 
             if (socket == null) {
                 disconnectSocket();
@@ -224,7 +224,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
             try {
                 message = socket.readMessage();
             } catch (IOException e) {
-                reportError("Connection failed: " + e.getMessage()); // hangup or connection was lost?
+                reportError("Connection failed: " + e.getMessage()); // called when connection is closed by either end?
                 // using reportError will cause the executor.shutdown() and also assignment of a task afterwards
                 Log.d(TAG, "Failed to read from rawSocket: " + e.getMessage());
                 break;
@@ -243,7 +243,7 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
                 break;
             }
 
-            Log.d(TAG, "decrypted: " + decrypted);
+            //Log.d(TAG, "decrypted: " + decrypted);
             executor.execute(() -> {
                 onTCPMessage(decrypted);
             });
@@ -369,13 +369,21 @@ public class DirectRTCClient extends Thread implements AppRTCClient {
     }
 
     private void onTCPMessage(String msg) {
-        Log.d(TAG, "onTCPMessage: " + msg);
+        //Log.d(TAG, "onTCPMessage: " + msg);
         try {
             JSONObject json = new JSONObject(msg);
             String type = json.optString("type");
 
+            // need to record for a call, so we can close the socket
+            Log.e(TAG, "onTCPMessage: (" + type + "): " + msg);
+
             if (type.equals("call")) {
-                // ignore - first encrypted of incoming call
+                if (callDirection != CallDirection.INCOMING) {
+                    Log.e(TAG, "Dang, we are the client but got the packet of an outoing call?");
+                    reportError("Unexpected answer: " + msg);
+                } else {
+                    // ignore - first packet of an incoming call
+                }
             } else if (type.equals("candidate")) {
                 signalingEvents.onRemoteIceCandidate(toJavaCandidate(json));
             } else if (type.equals("remove-candidates")) {

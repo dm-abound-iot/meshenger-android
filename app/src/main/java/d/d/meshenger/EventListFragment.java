@@ -1,5 +1,6 @@
 package d.d.meshenger;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
 import android.content.res.Resources;
@@ -24,6 +25,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -36,7 +38,6 @@ import static android.os.Looper.getMainLooper;
 
 public class EventListFragment extends Fragment implements AdapterView.OnItemClickListener {
     private static final String TAG = "EventListFragment";
-    private MainActivity mainActivity;
     private ListView eventListView;
     private EventListAdapter eventListAdapter;
     private FloatingActionButton fabDelete;
@@ -45,7 +46,6 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_event_list, container, false);
-        mainActivity = (MainActivity) getActivity();
 
         eventListView = view.findViewById(R.id.eventList);
         fabDelete = view.findViewById(R.id.fabDelete);
@@ -54,7 +54,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
             refreshEventList();
         });
 
-        eventListAdapter = new EventListAdapter(mainActivity, R.layout.item_event, Collections.emptyList(), Collections.emptyList());
+        eventListAdapter = new EventListAdapter(getActivity(), R.layout.item_event, Collections.emptyList(), Collections.emptyList());
         eventListView.setAdapter(eventListAdapter);
         eventListView.setOnItemClickListener(this);
 
@@ -66,12 +66,11 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
     public void refreshEventList() {
         Log.d(TAG, "refreshEventList");
 
-        if (this.mainActivity == null) {
-            Log.d(TAG, "refreshEventList early return");
-            return;
-        }
-
         new Handler(getMainLooper()).post(() -> {
+            if (eventListAdapter == null) {
+                return;
+            }
+
             List<Event> events = MainService.instance.getEvents().getEventListCopy();
             List<Contact> contacts = MainService.instance.getContacts().getContactListCopy();
 
@@ -82,7 +81,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
 
             eventListView.setOnItemLongClickListener((AdapterView<?> adapterView, View view, int i, long l) -> {
                 Event event = events.get(i);
-                PopupMenu menu = new PopupMenu(EventListFragment.this.mainActivity, view);
+                PopupMenu menu = new PopupMenu(EventListFragment.this.getActivity(), view);
                 Resources res = getResources();
                 String add = res.getString(R.string.add);
                 String block = res.getString(R.string.block);
@@ -127,39 +126,50 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
             contact.setBlocked(blocked);
             MainService.instance.saveDatabase();
         } else {
-            // unknown contact
+            Log.w(TAG, "Cannot block: no contact found for public key");
         }
     }
 
     private void showAddDialog(Event event) {
         Log.d(TAG, "showAddDialog");
 
-        Dialog dialog = new Dialog(this.mainActivity);
+        Activity activity = getActivity();
+        Dialog dialog = new Dialog(activity);
         dialog.setContentView(R.layout.dialog_add_contact);
 
-        EditText nameEditText = dialog.findViewById(R.id.nameEditText);
-        Button exitButton = dialog.findViewById(R.id.ExitButton);
+        EditText nameEditText = dialog.findViewById(R.id.NameEditText);
+        Button cancelButton = dialog.findViewById(R.id.CancelButton);
         Button okButton = dialog.findViewById(R.id.OkButton);
 
         okButton.setOnClickListener((View v) -> {
             String name = nameEditText.getText().toString();
+            List<String> addresses = new ArrayList<>();
+
+            if (event.publicKey == null) {
+                Toast.makeText(activity, "Public key not set.", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
             if (name.isEmpty()) {
-                Toast.makeText(this.mainActivity, R.string.contact_name_empty, Toast.LENGTH_SHORT).show();
+                Toast.makeText(activity, R.string.contact_name_empty, Toast.LENGTH_SHORT).show();
                 return;
             }
 
             if (MainService.instance.getContacts().getContactByName(name) != null) {
-                Toast.makeText(this.mainActivity, R.string.contact_name_exists, Toast.LENGTH_LONG).show();
+                Toast.makeText(activity, R.string.contact_name_exists, Toast.LENGTH_LONG).show();
                 return;
             }
 
-            String address = getGeneralizedAddress(InetSocketAddress.createUnresolved(event.address, 0).getAddress());
+            if (event.address != null) {
+                String address = getGeneralizedAddress(event.address);
+                addresses.add(address);
+            }
+
             MainService.instance.getContacts().addContact(
-                new Contact(name, event.publicKey, Arrays.asList(address), false)
+                new Contact(name, event.publicKey, addresses, false)
             );
 
-            Toast.makeText(this.mainActivity, R.string.done, Toast.LENGTH_SHORT).show();
+            Toast.makeText(activity, R.string.done, Toast.LENGTH_SHORT).show();
 
             refreshEventList();
 
@@ -167,7 +177,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
             dialog.dismiss();
         });
 
-        exitButton.setOnClickListener((View v) -> {
+        cancelButton.setOnClickListener((View v) -> {
             dialog.dismiss();
         });
 
@@ -176,18 +186,19 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
 
     /*
      * When adding an unknown contact, try to
-     * extract a MAC address from the IP address.
+     * extract a MAC address from the IPv6 address.
      */
-    private static String getGeneralizedAddress(InetAddress address) {
-        if (address instanceof Inet6Address) {
+    private static String getGeneralizedAddress(String address) {
+        InetAddress addr = InetSocketAddress.createUnresolved(address, 0).getAddress();
+        if (addr instanceof Inet6Address) {
             // if the IPv6 address contains a MAC address, take that.
-            byte[] mac = AddressUtils.getEUI64MAC((Inet6Address) address);
+            byte[] mac = AddressUtils.getEUI64MAC((Inet6Address) addr);
             if (mac != null) {
                 return Utils.bytesToMacAddress(mac);
             }
         }
 
-        return address.getHostAddress();
+        return address;
     }
 
     @Override
@@ -202,7 +213,7 @@ public class EventListFragment extends Fragment implements AdapterView.OnItemCli
 
         Contact contact = MainService.instance.getContacts().getContactByPublicKey(event.publicKey);
         if (contact == null) {
-            String address = getGeneralizedAddress(InetSocketAddress.createUnresolved(event.address, 0).getAddress());
+            String address = getGeneralizedAddress(event.address);
             contact = new Contact("", event.publicKey, Arrays.asList(address), false);
             contact.addAddress(address);
         }

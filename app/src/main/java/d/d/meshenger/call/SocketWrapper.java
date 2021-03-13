@@ -19,6 +19,7 @@ class SocketWrapper {
         this.socket = socket;
         this.os = socket.getOutputStream();
         this.is = socket.getInputStream();
+        socket.setSoTimeout(30 * 1000);
     }
 
     public void close() {

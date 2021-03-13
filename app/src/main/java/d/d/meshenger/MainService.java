@@ -5,8 +5,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.os.Binder;
@@ -19,12 +21,15 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.content.ContextCompat;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Date;
+import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import d.d.meshenger.call.CallActivity;
 import d.d.meshenger.call.DirectRTCClient;
@@ -43,6 +48,7 @@ public class MainService extends Service implements Runnable {
 
     public static MainService instance = null;
     private final IBinder mBinder = new LocalBinder();
+    private NotificationCompat.Builder notificationBuilder;
 
     public static final int serverPort = 10001;
     private static final int NOTIFICATION_ID = 42;
@@ -61,6 +67,9 @@ public class MainService extends Service implements Runnable {
 
         this.instance = this;
         database_path = this.getFilesDir() + "/database.bin";
+
+        LocalBroadcastManager.getInstance(this).registerReceiver(eventsChangedReceiver, new IntentFilter("events_changed"));
+        LocalBroadcastManager.getInstance(this).registerReceiver(contactsChangedReceiver, new IntentFilter("contacts_changed"));
 
         // handle incoming connections
         new Thread(this).start();
@@ -134,6 +143,9 @@ public class MainService extends Service implements Runnable {
         super.onDestroy();
         run = false;
 
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(eventsChangedReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(contactsChangedReceiver);
+
         // The database might be null here if no correct
         // database password was supplied to open it.
 
@@ -160,8 +172,6 @@ public class MainService extends Service implements Runnable {
         }
     }
 
-    private NotificationCompat.Builder notificationBuilder;
-
     private void showNotification() {
         String channelId = "meshenger_service";
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -178,7 +188,8 @@ public class MainService extends Service implements Runnable {
 
         Context mActivity = getApplicationContext();
         notificationBuilder = new NotificationCompat.Builder(mActivity, channelId)
-                .setOngoing(true)
+                //.setOngoing(true)
+                .setOnlyAlertOnce(true) // keep notification update from turning on the screen
                 .setSmallIcon(R.drawable.ic_logo)
                 .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.logo_small))
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
@@ -188,31 +199,61 @@ public class MainService extends Service implements Runnable {
                 //.setVisibility(VISIBILITY_PUBLIC);
 
         startForeground(NOTIFICATION_ID, notificationBuilder.build());
+
+
+        // update notification, since we want do display an updated "xxx ago"
+        Timer t = new Timer();
+        TimerTask tt = new TimerTask() {
+            @Override
+            public void run() {
+                Log.d(TAG, "trigger notification update");
+                updateMissedCallsNotification();
+            };
+        };
+
+        t.scheduleAtFixedRate(tt, 1000, 10 * 1000); // every 10s
     }
 
-    void resetNotificationContent() {
-        if (notificationBuilder == null) {
+    private final BroadcastReceiver eventsChangedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "received events_changed");
+            updateMissedCallsNotification();
+            saveDatabase();
+        }
+    };
+
+    private final BroadcastReceiver contactsChangedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "received contacts_changed");
+            saveDatabase();
+        }
+    };
+
+    private void updateMissedCallsNotification() {
+        if (notificationBuilder == null || database == null) {
             return;
         }
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationBuilder.setContentText(getResources().getText(R.string.listen_for_incoming_calls));
+        List<Event> missedCalls = getEvents().getMissedCalls();
 
-        manager.notify(NOTIFICATION_ID, notificationBuilder.build());
-    }
-
-    void updateNotification(Date missedDate, int showMissedCallsCount) {
-        if (notificationBuilder == null) {
-            return;
+        if (missedCalls.size() == 0) {
+            notificationBuilder.setContentText(
+                getResources().getText(R.string.listen_for_incoming_calls)
+            );
+        } else {
+            Event lastCall = missedCalls.get(missedCalls.size() - 1);
+            notificationBuilder.setContentText(
+                String.valueOf(missedCalls.size())
+                + " missed calls"
+                + " - "
+                + DateUtils.getRelativeTimeSpanString(
+                    lastCall.date.getTime(), System.currentTimeMillis(), 0L, DateUtils.FORMAT_ABBREV_ALL
+                )
+            );
         }
-
-        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationBuilder.setContentText(
-            String.valueOf(showMissedCallsCount)
-            + " missed calls"
-            + " - "
-            + DateUtils.getRelativeTimeSpanString(missedDate.getTime(), System.currentTimeMillis(), 0L, DateUtils.FORMAT_ABBREV_ALL)
-        );
 
         manager.notify(NOTIFICATION_ID, notificationBuilder.build());
     }

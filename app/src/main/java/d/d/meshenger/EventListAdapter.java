@@ -41,6 +41,14 @@ class EventListAdapter extends ArrayAdapter<Event> {
         this.contacts = contacts;
     }
 
+    private String formatAddress(String address) {
+        if (address.startsWith("/")) {
+            return address.substring(1);
+        } else {
+            return address;
+        }
+    }
+
     @Override
     public int getCount() {
         return events.size();
@@ -87,7 +95,7 @@ class EventListAdapter extends ArrayAdapter<Event> {
             SimpleDateFormat ft = new SimpleDateFormat("'Today at' hh:mm:ss");
             date_tv.setText(ft.format(event.date));
         } else {
-            SimpleDateFormat ft = new SimpleDateFormat("yyyy.MM.dd 'at' hh:mm:ss");
+            SimpleDateFormat ft = new SimpleDateFormat("yyyy.MM.dd 'at' hh:mm");
             date_tv.setText(ft.format(event.date));
         }
 
@@ -129,7 +137,7 @@ class EventListAdapter extends ArrayAdapter<Event> {
 
         TextView address_tv = view.findViewById(R.id.call_address);
         if (event.address != null) {
-            address_tv.setText("(" + event.address + ")");
+            address_tv.setText("(" + formatAddress(event.address) + ")");
         } else {
             address_tv.setText("");
         }

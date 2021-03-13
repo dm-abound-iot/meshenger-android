@@ -226,11 +226,15 @@ public class SettingsActivity extends MeshengerActivity {
 
         spinner.setSelection(((ArrayAdapter<CharSequence>) spinner.getAdapter()).getPosition(settingsMode));
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            int check = 0;
+
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
-                final TypedArray selectedValues = getResources().obtainTypedArray(entryValuesId);
-                final String settingsMode = selectedValues.getString(pos);
-                callback.call(settingsMode);
+                if (check++ > 0) {
+                    final TypedArray selectedValues = getResources().obtainTypedArray(entryValuesId);
+                    final String settingsMode = selectedValues.getString(pos);
+                    callback.call(settingsMode);
+                }
             }
 
             @Override

@@ -117,7 +117,7 @@ public class QRScanActivity extends MeshengerActivity implements BarcodeCallback
             // no conflict
             contacts.addContact(contact);
             MainService.instance.saveDatabase();
-            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("refresh_contact_list"));
+            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent("contacts_changed"));
             finish();
         }
     }

@@ -26,12 +26,12 @@ public class Event {
     CallType callType;
     Date date;
 
-    public Event(byte[] publicKey, String address, CallDirection callDirection, CallType callType) {
+    public Event(byte[] publicKey, String address, CallDirection callDirection, CallType callType, Date date) {
         this.publicKey = publicKey;
         this.address = address;
         this.callDirection = callDirection;
         this.callType = callType;
-        this.date = new Date();
+        this.date = date;
     }
 
     public boolean isMissedCall() {
@@ -83,9 +83,10 @@ public class Event {
     public static JSONObject toJSON(Event event) throws JSONException {
         JSONObject obj = new JSONObject();
         obj.put("public_key", Utils.byteArrayToHexString(event.publicKey));
-        obj.put("address", event.address.toString());
+        obj.put("address", event.address);
         obj.put("call_direction", callDirectionToString(event.callDirection));
         obj.put("call_type", callTypeToString(event.callType));
+        obj.put("date", String.valueOf(event.date.getTime()));
         return obj;
     }
 
@@ -94,6 +95,7 @@ public class Event {
         String address = obj.getString("address");
         CallType callType = callTypeFromString(obj.getString("call_type"));
         CallDirection callDirection = callDirectionFromString(obj.getString("call_direction"));
-        return new Event(publicKey, address, callDirection, callType);
+        Date date = new Date(Long.parseLong(obj.getString("date"), 10));
+        return new Event(publicKey, address, callDirection, callType, date);
     }
 }

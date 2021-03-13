@@ -208,7 +208,7 @@ public class ContactListFragment extends Fragment implements AdapterView.OnItemC
     }
 
     private void refreshContactListBroadcast() {
-        LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(new Intent("refresh_contact_list"));
+        LocalBroadcastManager.getInstance(getActivity()).sendBroadcast(new Intent("contact_changed"));
     }
 
     private void setBlocked(byte[] publicKey, boolean blocked) {
