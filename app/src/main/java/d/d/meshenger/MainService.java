@@ -79,7 +79,8 @@ public class MainService extends Service implements Runnable {
         try {
             if ((new File(database_path)).exists()) {
                 // open existing database
-                database = Database.load(database_path, database_password);
+                byte[] data = Utils.readInternalFile(database_path);
+                database = Database.fromData(data, database_password);
                 first_start = false;
             } else {
                 // create new database
@@ -132,7 +133,8 @@ public class MainService extends Service implements Runnable {
 
     public void saveDatabase() {
         try {
-            Database.store(database_path, database, database_password);
+            byte[] data = Database.toData(database, database_password);
+            Utils.writeInternalFile(database_path, data);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -151,7 +153,8 @@ public class MainService extends Service implements Runnable {
 
         if (database != null) {
             try {
-                Database.store(database_path, database, database_password);
+                byte[] data = Database.toData(database, database_password);
+                Utils.writeInternalFile(database_path, data);
             } catch (Exception e) {
                 e.printStackTrace();
             }

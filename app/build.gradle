@@ -39,5 +39,4 @@ dependencies {
     implementation 'org.webrtc:google-webrtc:1.0.32006'
     implementation 'com.github.joshjdevl.libsodiumjni:libsodium-jni-aar:2.0.2'
     implementation 'net.java.dev.jna:jna:4.5.2@aar'
-    implementation 'com.github.noelchew:storage-chooser:2.0.4.4a'
 }

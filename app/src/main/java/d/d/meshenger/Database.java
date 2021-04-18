@@ -54,10 +54,7 @@ class Database {
         }
     }
 
-    public static Database load(String path, String password) throws IOException, JSONException {
-        // read database file
-        byte[] data = Utils.readExternalFile(path);
-
+    public static Database fromData(byte[] data, String password) throws IOException, JSONException {
         // encrypt database
         if (password != null && password.length() > 0) {
             data = Crypto.decryptDatabase(data, password.getBytes());
@@ -71,13 +68,8 @@ class Database {
             new String(data, Charset.forName("UTF-8"))
         );
 
-        boolean upgraded = upgradeDatabase(obj.getString("version"), Database.version, obj);
+        upgradeDatabase(obj.getString("version"), Database.version, obj);
         Database db = Database.fromJSON(obj);
-
-        if (upgraded) {
-            Log.d(TAG, "Store updated database.");
-            Database.store(path, db, password);
-        }
 
         Log.d(TAG, "Loaded " + db.contacts.getContactList().size() + " contacts");
         Log.d(TAG, "Loaded " + db.events.getEventList().size() + " events.");
@@ -85,7 +77,7 @@ class Database {
         return db;
     }
 
-    public static void store(String path, Database db, String password) throws IOException, JSONException {
+    public static byte[] toData(Database db, String password) throws IOException, JSONException {
         JSONObject obj = Database.toJSON(db);
         byte[] data = obj.toString().getBytes();
 
@@ -97,8 +89,7 @@ class Database {
         Log.d(TAG, "Stored " + db.contacts.getContactList().size() + " contacts");
         Log.d(TAG, "Stored " + db.events.getEventList().size() + " events.");
 
-        // write database file
-        Utils.writeExternalFile(path, data);
+        return data;
     }
 
     private static void alignSettings(JSONObject settings) throws JSONException {
